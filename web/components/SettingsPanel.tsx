@@ -3,7 +3,6 @@ import { useState } from "react";
 import { doc, updateDoc } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { COLLECTIONS, User, type Competitor, type DecayDays, type FieldDefinition, type Role, type SourceDocument } from "@cc/shared";
-import Appearance from "./Appearance";
 import { can, useAuth } from "@/lib/auth";
 import { db, functions } from "@/lib/firebase";
 import { useCollection } from "@/lib/data";
@@ -28,10 +27,6 @@ export default function SettingsPanel({ fields, competitors, documents }: { fiel
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <div className="blueprint" style={{ padding: 18, display: "flex", flexDirection: "column", gap: 10 }}>
-        <h5>Appearance</h5>
-        <Appearance />
-      </div>
       <div className="blueprint" style={{ padding: 18, display: "flex", flexDirection: "column", gap: 8 }}>
         <h5 style={{ margin: 0 }}>Registry</h5>
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>

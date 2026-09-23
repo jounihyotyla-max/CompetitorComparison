@@ -1,16 +1,17 @@
 @import "tailwindcss";
 
 /* ─────────────────────────────────────────────────────────────────────────────
-   Design tokens, taken from the Competitor Comparison Table mockup (Main.dc.html).
-   Colour variants A / B / C (docs: canvas row "Overview · visual options") only
-   change the content-area background, card surfaces and section-head tints.
+   Design tokens: the Competitor Comparison Table mockup (Main.dc.html) with the
+   "Option B · Field" colour treatment chosen on 23 Sep 2026 — warm grey content
+   area, white cards, solid green section heads stepping lighter down the page.
+   Light only, by decision.
    ───────────────────────────────────────────────────────────────────────────── */
 :root {
   --font: var(--font-plex), "IBM Plex Sans", system-ui, sans-serif;
   --bg: #f6f6f2;            /* page + header */
-  --content: #f6f6f2;       /* content area behind the cards */
+  --content: #e6e9e3;       /* content area behind the cards */
   --card: #ffffff;
-  --card-border: #e3e6e0;
+  --card-border: #d3d9d1;
   --line: #eef0eb;          /* row dividers */
   --text: #171d19;
   --text-2: #3f4844;
@@ -21,10 +22,10 @@
   --green-tint: #e4efe7;
   --green-wash: #f4f9f6;
   --th-bg: #fafaf7;
-  --head-1: var(--card); --head-2: var(--card); --head-3: var(--card); --head-4: var(--card);
-  --head-text: var(--text);
-  --head-sub: var(--muted);
-  --legend: var(--muted);
+  --head-1: #1f523a; --head-2: #2b6a4c; --head-3: #3a7d5c; --head-4: #4a8f6c;
+  --head-text: #ffffff;
+  --head-sub: #cfe6d8;
+  --legend: #4e5a53;
   --ok-bg: #e3f3e9; --ok: #1a6b41;
   --bad-bg: #f8e5e1; --bad: #9a2f22;
   --warn-bg: #fdf3d8; --warn: #8a6414;
@@ -32,24 +33,7 @@
   --pub-bg: #e6e9f5; --pub: #2f3f7a;
   --int-bg: #fdf3d8; --int: #7a5a12;
   --shadow: 0 12px 32px rgba(23, 29, 25, .14);
-  --rule: 1px; --rule-color: var(--card-border);
 }
-:root[data-variant="a"] { --content: #22312a; --card: #fbfbf8; --card-border: #d9ded7; --head-1: #dcebe1; --head-2: #cfe3d6; --head-3: #c2dbcb; --head-4: #b6d3c0; --head-text: #173d2b; --head-sub: #3f6a55; --legend: #c9d6cd; }
-:root[data-variant="b"] { --content: #e6e9e3; --card-border: #d3d9d1; --head-1: #1f523a; --head-2: #2b6a4c; --head-3: #3a7d5c; --head-4: #4a8f6c; --head-text: #ffffff; --head-sub: #cfe6d8; --legend: #4e5a53; }
-:root[data-variant="c"] { --content: #dfe8e2; --card-border: #c9d6cd; --head-1: #eef5f0; --head-2: #e6f0ea; --head-3: #dfece4; --head-4: #d7e7dd; --head-text: #173d2b; --head-sub: #4f7a63; --legend: #3f5a4b; --rule: 4px; --rule-color: var(--green); }
-
-.dark {
-  --bg: #171d19; --content: #171d19; --card: #1f2622; --card-border: #2e3833; --line: #2a332e;
-  --text: #e8ece9; --text-2: #c5ccc8; --muted: #93a099; --faint: #6a736d;
-  --green: #5fa882; --green-dark: #7fbf9c; --green-tint: #23392e; --green-wash: #1d2b23; --th-bg: #232b26;
-  --head-1: var(--card); --head-2: var(--card); --head-3: var(--card); --head-4: var(--card); --head-text: var(--text); --head-sub: var(--muted); --legend: var(--muted);
-  --ok-bg: #1d3a2a; --ok: #7fcf9a; --bad-bg: #40211d; --bad: #f28b82; --warn-bg: #3d3013; --warn: #f0b35a; --none-bg: #262d29; --none: #7a837d;
-  --pub-bg: #262d45; --pub: #b7c2ee; --int-bg: #3d3013; --int: #f0d08a;
-  --shadow: 0 12px 32px rgba(0, 0, 0, .5);
-}
-.dark[data-variant="a"] { --content: #0f1512; --card: #1f2622; }
-.dark[data-variant="b"] { --content: #111814; --head-1: #1f523a; --head-2: #2b6a4c; --head-3: #3a7d5c; --head-4: #4a8f6c; --head-text: #fff; --head-sub: #cfe6d8; }
-.dark[data-variant="c"] { --content: #131a16; --rule: 4px; --rule-color: var(--green); }
 
 html, body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; line-height: 1.45; -webkit-font-smoothing: antialiased; }
 a { color: var(--green); } a:hover { color: var(--green-dark); }
@@ -93,7 +77,7 @@ textarea.inp { resize: vertical; line-height: 1.5; background: color-mix(in srgb
 @media (max-width: 1000px) { .title-block, .tabs, .ws-main { padding-left: 16px; padding-right: 16px; } .two-col { grid-template-columns: 1fr; } }
 
 /* ── Cards and section boxes ── */
-.blueprint { background: var(--card); border: 1px solid var(--card-border); border-radius: 12px; border-top: var(--rule) solid var(--rule-color); }
+.blueprint { background: var(--card); border: 1px solid var(--card-border); border-radius: 12px; }
 .tablebox { padding: 0; overflow: hidden; }
 .tablebox[data-group="overview"] .section-head { background: var(--head-1); }
 .tablebox[data-group="features"] .section-head { background: var(--head-2); }

@@ -3,7 +3,6 @@ import { useMemo, useState } from "react";
 import {
   COLLECTIONS, Cell, Competitor, FieldDefinition, Market, SourceDocument, Verdict, cellId,
 } from "@cc/shared";
-import Appearance from "@/components/Appearance";
 import CellPopover from "@/components/CellPopover";
 import Overview, { type Sel } from "@/components/Overview";
 import SettingsPanel from "@/components/SettingsPanel";
@@ -80,7 +79,6 @@ function Workspace() {
               ))}
             </div>
           )}
-          <Appearance compact />
           <span className="muted" style={{ fontSize: 12 }}>{user?.email} · {role}</span>
           <button className="btn" type="button" onClick={signOut} style={{ fontSize: 13, padding: "6px 10px" }}>Sign out</button>
         </div>
