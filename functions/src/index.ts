@@ -1,11 +1,12 @@
 import { setGlobalOptions } from "firebase-functions/v2";
-import { onDocumentCreated } from "firebase-functions/v2/firestore";
+import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { defineSecret, defineString } from "firebase-functions/params";
-import { COLLECTIONS, Role } from "@cc/shared";
+import { COLLECTIONS, Review, Role } from "@cc/shared";
 import { db, nowIso } from "./lib/admin.ts";
 import { anthropicClient, DEFAULT_MODEL } from "./pipeline/extract.ts";
 import { processDocument } from "./pipeline/run.ts";
+import { applyReview } from "./pipeline/review.ts";
 import { seedAll } from "./seed/seed.ts";
 
 setGlobalOptions({ region: "europe-west1", maxInstances: 10 });
@@ -51,6 +52,17 @@ export const seed = onCall({ timeoutSeconds: 300 }, async (req) => {
   const result = await seedAll(db, { withNotes, author: req.auth?.token.email ?? "seed" });
   return result;
 });
+
+/** An editor decided a review in the browser (open -> accepted / rejected / merged); apply it to the cell. */
+export const onReviewDecided = onDocumentUpdated(
+  { document: `${COLLECTIONS.reviews}/{id}`, secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 300 },
+  async (event) => {
+    const before = event.data?.before.data()?.status;
+    const after = Review.safeParse({ id: event.params.id, ...event.data?.after.data() });
+    if (!after.success || before !== "open" || after.data.status === "open") return;
+    await applyReview(after.data, model());
+  },
+);
 
 /** First sign-in creates users/{uid} as viewer from the browser; admins listed in ADMIN_EMAILS are promoted here. */
 export const onUserNew = onDocumentCreated(`${COLLECTIONS.users}/{uid}`, async (event) => {

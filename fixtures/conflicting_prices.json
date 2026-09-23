@@ -1,8 +1,0 @@
-{
-  "your_company": {"name": "Acme Notes", "text": "Acme Notes — team note-taking app. $8/user/month."},
-  "competitors": [
-    {"name": "FlipFlop", "text": "FlipFlop costs $12/month, or actually $30/month according to their newer pricing page. Aimed at agencies."}
-  ],
-  "industry": "generic",
-  "custom_fields": []
-}

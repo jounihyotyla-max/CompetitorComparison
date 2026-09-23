@@ -1,6 +1,0 @@
-[
-  {"id": "delivery_model", "label": "Delivery model", "type": "categorical", "comparison_rule": "not_compared", "industry_presets": ["services"],
-   "description": "How the service is delivered, e.g. on-site, remote, retainer, project-based, self-serve."},
-  {"id": "service_guarantee", "label": "Guarantee or SLA", "type": "boolean", "comparison_rule": "presence_is_better", "industry_presets": ["services"],
-   "description": "Whether the entity offers a satisfaction guarantee, service-level agreement, or money-back promise."}
-]

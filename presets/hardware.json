@@ -1,8 +1,0 @@
-[
-  {"id": "warranty_years", "label": "Warranty (years)", "type": "number", "comparison_rule": "higher_is_better", "unit": "years", "industry_presets": ["hardware"],
-   "description": "Length of the product warranty in years."},
-  {"id": "battery_life_hours", "label": "Battery life (hours)", "type": "number", "comparison_rule": "higher_is_better", "unit": "hours", "industry_presets": ["hardware"],
-   "description": "Rated battery life per charge in hours."},
-  {"id": "weight_grams", "label": "Weight (g)", "type": "number", "comparison_rule": "lower_is_better", "unit": "g", "industry_presets": ["hardware"],
-   "description": "Product weight in grams."}
-]

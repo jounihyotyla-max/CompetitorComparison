@@ -1,9 +1,0 @@
-{
-  "your_company": {"name": "Acme Notes", "text": "Acme Notes — team note-taking app. $8/user/month. Features: real-time collaboration, AI summaries, SSO on the top tier. For mid-size product teams."},
-  "competitors": [
-    {"name": "NoteRival", "text": "NoteRival — 'The workspace for fast teams.' Pricing starts at $12/seat/month billed annually. Includes real-time editing, templates, and 24/7 onboarding support. Aimed at enterprise teams."},
-    {"name": "Competitor B", "text": "I think they're cheaper but don't do onboarding support."}
-  ],
-  "industry": "saas",
-  "custom_fields": []
-}

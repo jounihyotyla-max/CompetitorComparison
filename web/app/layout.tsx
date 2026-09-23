@@ -6,7 +6,7 @@ import "./globals.css";
 const plex = IBM_Plex_Sans({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-plex", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "Competitor Comparison",
+  title: "Nofence competitor analytics",
   description: "Nofence competitor comparison: every cell traces back to a dated, sourced quote.",
 };
 

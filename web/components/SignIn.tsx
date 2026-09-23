@@ -7,7 +7,7 @@ export default function SignIn() {
     <main style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 24 }}>
       <div className="blueprint" style={{ maxWidth: 420, padding: 28, display: "flex", flexDirection: "column", gap: 14 }}>
         <span className="kicker">Nofence · internal</span>
-        <h2 style={{ margin: 0 }}>Competitor comparison</h2>
+        <h2 style={{ margin: 0 }}>Nofence competitor analytics</h2>
         <p className="muted" style={{ margin: 0, fontSize: 14, lineHeight: 1.5 }}>
           Every cell in the tables traces back to a dated, sourced quote. Sign in with your Nofence Google account to see them.
         </p>

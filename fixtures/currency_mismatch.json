@@ -1,8 +1,0 @@
-{
-  "your_company": {"name": "Acme Notes", "text": "Acme Notes — team note-taking app. $8/user/month."},
-  "competitors": [
-    {"name": "EuroNotes", "text": "EuroNotes charges €10 per user per month and offers a 14-day free trial."}
-  ],
-  "industry": "saas",
-  "custom_fields": []
-}

@@ -1,6 +1,0 @@
-[
-  {"id": "distribution_channels", "label": "Where to buy", "type": "list", "comparison_rule": "qualitative_llm", "industry_presets": ["consumer"],
-   "description": "Sales channels such as own webshop, Amazon, retail stores, app stores."},
-  {"id": "return_policy", "label": "Return policy", "type": "free_text", "comparison_rule": "qualitative_llm", "industry_presets": ["consumer"],
-   "description": "Return, refund, or money-back terms offered to buyers."}
-]

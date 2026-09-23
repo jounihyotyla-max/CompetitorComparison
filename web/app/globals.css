@@ -72,6 +72,7 @@ textarea.inp { resize: vertical; line-height: 1.5; background: color-mix(in srgb
 .tab:hover { color: var(--text); }
 .tab[aria-selected="true"] { color: var(--text); border-bottom-color: var(--green); }
 .tab:disabled { opacity: .4; cursor: not-allowed; }
+.tab .count { display: inline-block; margin-left: 6px; min-width: 18px; padding: 0 5px; border-radius: 999px; background: var(--bad); color: #fff; font-size: 11px; line-height: 18px; text-align: center; }
 .ws-main { flex-grow: 1; padding: 24px 64px 40px; display: flex; flex-direction: column; gap: 24px; background: var(--content); min-width: 0; }
 .two-col { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 20px; align-items: start; }
 @media (max-width: 1000px) { .title-block, .tabs, .ws-main { padding-left: 16px; padding-right: 16px; } .two-col { grid-template-columns: 1fr; } }

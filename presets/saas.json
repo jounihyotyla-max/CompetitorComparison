@@ -1,8 +1,0 @@
-[
-  {"id": "onboarding_support", "label": "Onboarding support", "type": "boolean", "comparison_rule": "presence_is_better", "industry_presets": ["saas"],
-   "description": "Whether the entity offers onboarding, implementation, or customer-success help for new customers."},
-  {"id": "free_trial", "label": "Free trial or free tier", "type": "boolean", "comparison_rule": "presence_is_better", "industry_presets": ["saas"],
-   "description": "Whether the entity offers a free trial or a free plan."},
-  {"id": "integrations", "label": "Integrations", "type": "list", "comparison_rule": "qualitative_llm", "industry_presets": ["saas"],
-   "description": "Third-party tools, platforms, or APIs the entity connects with."}
-]
