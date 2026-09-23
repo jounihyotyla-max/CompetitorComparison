@@ -2,7 +2,9 @@ import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { EventKind, MarketId, type Competitor, type FieldDefinition, type Market } from "@cc/shared";
-import { BATTLECARD_SYSTEM, EXTRACTION_SYSTEM, JUDGE_SYSTEM } from "./prompts.ts";
+import { ASK_SYSTEM, BATTLECARD_SYSTEM, EXTRACTION_SYSTEM, JUDGE_SYSTEM, MARKETING_SYSTEM } from "./prompts.ts";
+import type { AskMaterial } from "./ask.ts";
+import type { MarketingRow } from "./marketing.ts";
 
 export const DEFAULT_MODEL = "claude-opus-5";
 
@@ -46,10 +48,19 @@ const BattlecardOut = z.object({
 });
 export type BattlecardOut = z.infer<typeof BattlecardOut>;
 
+const MarketingOut = z.object({
+  differentiators: z.array(z.object({ headline: z.string(), support: z.string(), fieldId: z.string(), competitorIds: z.array(z.string()) })),
+  snippets: z.array(z.object({ kind: z.string(), text: z.string(), fieldIds: z.array(z.string()) })),
+  dontUse: z.array(z.object({ text: z.string(), reason: z.string(), fieldId: z.string() })),
+});
+export type MarketingOut = z.infer<typeof MarketingOut>;
+
 export interface ModelClient {
   extract(doc: { title: string; text: string; capturedAt: string }, competitor: Competitor, fields: FieldDefinition[], markets: Market[]): Promise<Extraction>;
   judge(competitorName: string, rows: { fieldId: string; label: string; ours: string; theirs: string }[]): Promise<z.infer<typeof Judgement>["verdicts"]>;
   battlecard(competitorName: string, marketId: MarketId, rows: { fieldId: string; label: string; ours: string; theirs: string; verdict: string; rationale: string }[]): Promise<BattlecardOut>;
+  marketing(marketId: MarketId, rows: MarketingRow[]): Promise<MarketingOut>;
+  ask(question: string, material: AskMaterial): Promise<string>;
 }
 
 const fieldsBlock = (fields: FieldDefinition[]) =>
@@ -112,6 +123,29 @@ export function anthropicClient(apiKey: string, model = DEFAULT_MODEL): ModelCli
       });
       if (!res.parsed_output) throw new Error(`battlecard returned no parsable output (stop_reason ${res.stop_reason})`);
       return res.parsed_output;
+    },
+    async marketing(marketId, rows) {
+      const lines = rows.map((r) => `- ${r.fieldId} (${r.label}): ` + r.values.map((v) => `${v.isSelf ? "Nofence" : v.name}: "${v.value}" [${v.publishable ? "publishable" : `NOT publishable: ${v.why}`}]`).join(" | ")).join("\n");
+      const res = await client.messages.parse({
+        model,
+        max_tokens: 8000,
+        system: [{ type: "text", text: MARKETING_SYSTEM, cache_control: { type: "ephemeral" } }],
+        messages: [{ role: "user", content: `Market: ${marketId === "GLOBAL" ? "all markets (no market-specific prices)" : marketId}.\n\nRows:\n${lines}` }],
+        output_config: { format: zodOutputFormat(MarketingOut) },
+      });
+      if (!res.parsed_output) throw new Error(`marketing returned no parsable output (stop_reason ${res.stop_reason})`);
+      return res.parsed_output;
+    },
+    async ask(question, m) {
+      const material = `CELLS\n${m.cells.join("\n") || "(none)"}\n\nEVENTS\n${m.events.join("\n") || "(none)"}\n\nDOCUMENT PASSAGES\n${m.passages.join("\n\n") || "(none)"}`;
+      const res = await client.messages.create({
+        model,
+        max_tokens: 4000,
+        system: [{ type: "text", text: ASK_SYSTEM, cache_control: { type: "ephemeral" } }],
+        messages: [{ role: "user", content: `<material>\n${material}\n</material>\n\nQuestion: ${question}` }],
+      });
+      if (res.stop_reason === "refusal") throw new Error("the model declined to answer this question");
+      return res.content.filter((b) => b.type === "text").map((b) => b.text).join("\n").trim();
     },
   };
 }

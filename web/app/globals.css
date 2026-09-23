@@ -145,7 +145,11 @@ textarea.inp { resize: vertical; line-height: 1.5; background: color-mix(in srgb
 .quote-box { font-size: 12px; color: var(--text-2); background: color-mix(in srgb, var(--card) 60%, var(--content)); border-radius: 6px; padding: 8px 10px; line-height: 1.5; }
 .quote-mark { background: color-mix(in srgb, var(--green) 40%, transparent); box-shadow: 0 1px 0 var(--green-dark); }
 
-/* ── Per-tab introduction ── */
-.intro { padding: 14px 18px; border-left: 4px solid var(--green); font-size: 13px; }
-.intro ul { margin: 8px 0 0; padding-left: 18px; line-height: 1.55; color: var(--text-2); }
-.intro li + li { margin-top: 3px; }
+/* ── Per-tab tips carousel ── */
+.intro { padding: 12px 18px; border-left: 4px solid var(--green); font-size: 13px; }
+.dots { display: inline-flex; gap: 5px; align-items: center; }
+.dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--card-border); cursor: pointer; }
+.dots i.on { background: var(--green-dark); }
+/* ── Ask pane ── */
+.askpane { width: min(520px, calc(100vw - 32px)); max-height: 80vh; }
+.cite { font-size: 11px; font-weight: 600; padding: 0 5px; border-radius: 999px; background: var(--pub-bg); color: var(--pub); text-decoration: none; margin: 0 1px; vertical-align: baseline; }

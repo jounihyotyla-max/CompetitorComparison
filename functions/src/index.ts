@@ -9,6 +9,8 @@ import { anthropicClient, DEFAULT_MODEL } from "./pipeline/extract.ts";
 import { processDocument } from "./pipeline/run.ts";
 import { applyReview } from "./pipeline/review.ts";
 import { generateBattlecard } from "./pipeline/battlecard.ts";
+import { generateMarketing } from "./pipeline/marketing.ts";
+import { answer } from "./pipeline/ask.ts";
 import { seedAll } from "./seed/seed.ts";
 import { runCrawl } from "./connectors/crawl.ts";
 
@@ -106,6 +108,22 @@ export const autoResolveReviews = onCall({ timeoutSeconds: 300 }, async (req) =>
     }
   }
   return { folded, resolved: n, remaining: stillOpen.size - n };
+});
+
+/** Editor: (re)generate the marketing pack for one market from publishable cells. */
+export const marketing = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 300 }, async (req) => {
+  await requireRole(req.auth?.uid, ["editor", "admin"]);
+  const marketId = MarketId.safeParse(req.data?.marketId ?? "GLOBAL");
+  if (!marketId.success) throw new HttpsError("invalid-argument", "valid marketId required");
+  return generateMarketing(marketId.data, model());
+});
+
+/** Anyone signed in: ask a question of the data. Answer cites cells, events and passages; stored per user. */
+export const ask = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 180 }, async (req) => {
+  await requireRole(req.auth?.uid, ["viewer", "editor", "admin"]);
+  const question = String(req.data?.question ?? "").trim().slice(0, 500);
+  if (question.length < 3) throw new HttpsError("invalid-argument", "question required");
+  return answer(req.auth!.uid, question, model());
 });
 
 /** Daily at 06:00 Oslo time: re-fetch competitor pages older than the crawl interval, and all feeds. */

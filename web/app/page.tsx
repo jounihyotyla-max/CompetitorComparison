@@ -4,7 +4,9 @@ import {
   COLLECTIONS, Cell, Competitor, FieldDefinition, Market, Review as ReviewT, SourceDocument, Verdict, cellId,
 } from "@cc/shared";
 import CellPopover from "@/components/CellPopover";
+import Ask from "@/components/Ask";
 import Intro from "@/components/Intro";
+import Marketing from "@/components/Marketing";
 import Battlecards from "@/components/Battlecards";
 import Overview, { type Sel } from "@/components/Overview";
 import Review from "@/components/Review";
@@ -16,7 +18,7 @@ import { fmtDate, useById, useCollection } from "@/lib/data";
 
 type Tab = "overview" | "battlecards" | "marketing" | "sources" | "review" | "settings";
 const TABS: [Tab, string, boolean][] = [
-  ["overview", "Overview", true], ["battlecards", "Battlecards", true], ["marketing", "Marketing", false],
+  ["overview", "Overview", true], ["battlecards", "Battlecards", true], ["marketing", "Marketing", true],
   ["sources", "Sources & inputs", true], ["review", "Review", true], ["settings", "Settings", true],
 ];
 
@@ -36,6 +38,7 @@ function Workspace() {
   const [tab, setTab] = useState<Tab>("overview");
   const [group, setGroup] = useState<string>("All");
   const [selected, setSelected] = useState<Sel | null>(null);
+  const [asking, setAsking] = useState(false);
 
   const fields = useCollection(COLLECTIONS.fields, FieldDefinition);
   const competitors = useCollection(COLLECTIONS.competitors, Competitor);
@@ -83,6 +86,7 @@ function Workspace() {
               ))}
             </div>
           )}
+          <button className="btn" type="button" onClick={() => { setAsking(true); setSelected(null); }} style={{ fontSize: 13, padding: "6px 12px" }}>Ask the data</button>
           <span className="muted" style={{ fontSize: 12 }}>{user?.email} · {role}</span>
           <button className="btn" type="button" onClick={signOut} style={{ fontSize: 13, padding: "6px 10px" }}>Sign out</button>
         </div>
@@ -102,12 +106,14 @@ function Workspace() {
           <Overview fields={fields.docs} competitors={competitors.docs} markets={markets.docs} cells={cells.docs} verdicts={verdicts.docs} group={group} selected={selected} onSelect={setSelected} />
         )}
         {tab === "battlecards" && <Battlecards competitors={competitors.docs} fields={fields.docs} cells={cells.docs} markets={markets.docs} group={group} onSelect={setSelected} />}
+        {tab === "marketing" && <Marketing cells={cells.docs} fields={fields.docs} competitors={competitors.docs} markets={markets.docs} group={group} onSelect={(x) => { setAsking(false); setSelected(x); }} />}
         {tab === "review" && <Review reviews={reviews.docs} competitors={competitors.docs} fields={fields.docs} documents={docMap} />}
         {tab === "sources" && <Sources documents={documents.docs} competitors={competitors.docs} markets={markets.docs} />}
         {tab === "settings" && <SettingsPanel fields={fields.docs} competitors={competitors.docs} documents={documents.docs} markets={markets.docs} />}
       </main>
 
       {sel && <CellPopover {...sel} documents={docMap} onClose={() => setSelected(null)} />}
+      <Ask open={asking && !sel} onClose={() => setAsking(false)} documents={docMap} onSelect={(x) => setSelected(x)} />
     </div>
   );
 }

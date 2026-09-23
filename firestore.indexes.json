@@ -1,6 +1,33 @@
 {
   "indexes": [
-    { "collectionGroup": "reviews", "queryScope": "COLLECTION", "fields": [ { "fieldPath": "cellId", "order": "ASCENDING" }, { "fieldPath": "status", "order": "ASCENDING" } ] }
+    {
+      "collectionGroup": "reviews",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "cellId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "questions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "userId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "askedAt",
+          "order": "DESCENDING"
+        }
+      ]
+    }
   ],
   "fieldOverrides": []
 }

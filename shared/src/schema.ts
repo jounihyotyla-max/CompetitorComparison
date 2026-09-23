@@ -339,6 +339,22 @@ export const Battlecard = z.object({
 });
 export type Battlecard = z.infer<typeof Battlecard>;
 
+/** Marketing pack per market: differentiators safe to publish, ready-to-use snippets, and what not to use. */
+export const MarketingPack = z.object({
+  id: MarketId,
+  marketId: MarketId,
+  differentiators: z.array(z.object({
+    headline: z.string(), support: z.string(), fieldId: slug, competitorIds: z.array(slug), cellIds: z.array(z.string()),
+    /** "safe" = every cited cell is publishable; "check" = ours is fine but a competitor value is internal or stale */
+    status: z.enum(["safe", "check"]),
+  })).default([]),
+  snippets: z.array(z.object({ kind: z.string(), text: z.string(), cellIds: z.array(z.string()) })).default([]),
+  dontUse: z.array(z.object({ text: z.string(), reason: z.string(), cellIds: z.array(z.string()) })).default([]),
+  generatedFromCellIds: z.array(z.string()).default([]),
+  generatedAt: iso,
+});
+export type MarketingPack = z.infer<typeof MarketingPack>;
+
 export const Question = z.object({
   id: z.string(),
   userId: z.string(),
