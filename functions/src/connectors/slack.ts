@@ -39,12 +39,12 @@ export function slackClient(token: string) {
   return {
     call,
     user,
-    async channels(): Promise<Map<string, { id: string; name: string; isPrivate: boolean }>> {
-      const out = new Map<string, { id: string; name: string; isPrivate: boolean }>();
+    async channels(): Promise<Map<string, { id: string; name: string; isPrivate: boolean; isMember: boolean }>> {
+      const out = new Map<string, { id: string; name: string; isPrivate: boolean; isMember: boolean }>();
       let cursor: string | undefined;
       do {
         const r = await call("conversations.list", { types: "public_channel,private_channel", exclude_archived: true, limit: 200, cursor });
-        for (const c of r.channels as { id: string; name: string; is_private: boolean }[]) out.set(c.name, { id: c.id, name: c.name, isPrivate: c.is_private });
+        for (const c of r.channels as { id: string; name: string; is_private: boolean; is_member?: boolean }[]) out.set(c.name, { id: c.id, name: c.name, isPrivate: c.is_private, isMember: !!c.is_member });
         cursor = (r.response_metadata as { next_cursor?: string } | undefined)?.next_cursor || undefined;
       } while (cursor);
       return out;
@@ -89,17 +89,23 @@ export async function syncSlack(token: string, opts: { channels?: string[]; forc
   const client = slackClient(token);
   const settingsRef = db.collection(COLLECTIONS.settings).doc("global");
   const settings = Settings.parse({ id: "global", updatedAt: nowIso(), ...(await settingsRef.get()).data() });
-  const wanted = opts.channels ?? settings.slackChannels;
-  if (wanted.length === 0) { rep.notes.push("no Slack channels configured in settings"); return rep; }
   const competitors = (await db.collection(COLLECTIONS.competitors).get()).docs.flatMap((d) => { const r = Competitor.safeParse(d.data()); return r.success ? [r.data] : []; });
   const all = await client.channels();
+  // An explicit list wins; with no list, every channel the bot has been invited to is read.
+  let wanted = opts.channels ?? settings.slackChannels;
+  if (wanted.length === 0) {
+    wanted = [...all.values()].filter((c) => c.isMember).map((c) => c.name);
+    rep.notes.push(wanted.length ? `no channel list set; reading the ${wanted.length} channel${wanted.length === 1 ? "" : "s"} the bot is in: ${wanted.map((n) => `#${n}`).join(", ")}` : "the bot is not a member of any channel yet");
+    if (wanted.length === 0) return rep;
+  }
   const cursors = { ...settings.slackCursors };
   // First sync reads the last 30 days; later syncs read from the cursor.
   const initialOldest = String(Math.floor((Date.now() - 30 * 86_400_000) / 1000));
 
   for (const name of wanted) {
     const ch = all.get(name.replace(/^#/, ""));
-    if (!ch) { rep.notes.push(`#${name}: not found or the bot is not a member`); continue; }
+    if (!ch) { rep.notes.push(`#${name}: no such channel (private channels appear only once the bot is invited)`); continue; }
+    if (!ch.isMember) { rep.notes.push(`#${name}: the bot is not a member, invite it with /invite`); continue; }
     rep.channelsRead++;
     let messages: SlackMessage[];
     try { messages = await client.history(ch.id, opts.force ? initialOldest : (cursors[ch.name] ?? initialOldest)); }

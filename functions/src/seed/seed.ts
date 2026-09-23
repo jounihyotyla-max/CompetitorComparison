@@ -46,8 +46,18 @@ export async function seedAll(db: Firestore, opts: { withNotes: boolean; author:
     batch.set(db.collection(COLLECTIONS.fields).doc(f.id), FieldDefinition.parse(f));
     newFields++;
   }
+  // Settings: create when missing; otherwise fill in keys that later versions added, never overwrite an admin's values.
   const settingsRef = db.collection(COLLECTIONS.settings).doc("global");
-  if (!(await settingsRef.get()).exists) batch.set(settingsRef, Settings.parse(SETTINGS));
+  const cur = (await settingsRef.get()).data() as Partial<Settings> | undefined;
+  if (!cur) batch.set(settingsRef, Settings.parse(SETTINGS));
+  else {
+    const fill: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(SETTINGS)) {
+      const have = (cur as Record<string, unknown>)[k];
+      if (have === undefined || (Array.isArray(have) && have.length === 0 && Array.isArray(v) && v.length > 0) || have === "") fill[k] = v;
+    }
+    if (Object.keys(fill).length) batch.set(settingsRef, { ...fill, updatedAt: new Date().toISOString() }, { merge: true });
+  }
   await batch.commit();
 
   let newNotes = 0;
