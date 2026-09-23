@@ -33,6 +33,8 @@
   --pub-bg: #262d45; --pub: #b7c2ee;
   --int-bg: #3d3013; --int: #f0d08a;
   --shadow: 0 12px 32px rgba(0, 0, 0, .55);
+  --raised: #242d31;        /* floating panels sit above the cards */
+  --raised-border: #3a464b;
 }
 
 html { color-scheme: dark; }
@@ -137,12 +139,12 @@ textarea.inp { resize: vertical; line-height: 1.5; background: color-mix(in srgb
 .rule { font-family: ui-monospace, monospace; font-size: 11px; padding: 1px 6px; border-radius: 4px; background: var(--none-bg); color: var(--text-2); }
 
 /* ── Popover: "Where does this come from?" ── */
-.popover { position: fixed; right: 24px; bottom: 24px; width: min(440px, calc(100vw - 32px)); max-height: 76vh; overflow: auto; background: var(--card); border: 1px solid var(--card-border); border-radius: 12px; box-shadow: var(--shadow); padding: 16px 18px; z-index: 20; font-size: 13px; }
+.popover { position: fixed; right: 24px; bottom: 24px; width: min(440px, calc(100vw - 32px)); max-height: 76vh; overflow: auto; background: var(--raised); border: 1px solid var(--raised-border); border-top: 3px solid #3a7d5c; border-radius: 12px; box-shadow: 0 24px 60px rgba(0, 0, 0, .75), 0 0 0 1px rgba(255,255,255,.04); padding: 16px 18px; z-index: 20; font-size: 13px; }
 .dates { display: grid; grid-template-columns: max-content 1fr; gap: 3px 12px; margin: 10px 0 0; font-size: 12px; }
 .dates dt { color: var(--muted); } .dates dd { margin: 0; }
-.quote-card { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+.quote-card { border: 1px solid var(--raised-border); background: color-mix(in srgb, var(--raised) 60%, var(--card)); border-radius: 8px; padding: 10px 12px; margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
 .quote-card b { font-size: 13px; font-weight: 500; }
-.quote-box { font-size: 12px; color: var(--text-2); background: color-mix(in srgb, var(--card) 60%, var(--content)); border-radius: 6px; padding: 8px 10px; line-height: 1.5; }
+.quote-box { font-size: 12px; color: var(--text-2); background: color-mix(in srgb, var(--card) 70%, var(--content)); border-radius: 6px; padding: 8px 10px; line-height: 1.5; }
 .quote-mark { background: color-mix(in srgb, var(--green) 40%, transparent); box-shadow: 0 1px 0 var(--green-dark); }
 
 /* ── Per-tab tips carousel ── */
@@ -153,3 +155,11 @@ textarea.inp { resize: vertical; line-height: 1.5; background: color-mix(in srgb
 /* ── Ask pane ── */
 .askpane { width: min(520px, calc(100vw - 32px)); max-height: 80vh; }
 .cite { font-size: 11px; font-weight: 600; padding: 0 5px; border-radius: 999px; background: var(--pub-bg); color: var(--pub); text-decoration: none; margin: 0 1px; vertical-align: baseline; }
+
+/* ── Floating "Talk to me" button ── */
+.talk { position: fixed; right: 24px; bottom: 24px; z-index: 19; display: flex; align-items: center; gap: 12px; padding: 12px 18px 12px 14px; border-radius: 999px; background: #2b6a4c; color: #fff; border: 1px solid #3a7d5c; box-shadow: 0 14px 36px rgba(0, 0, 0, .6); cursor: pointer; font-family: inherit; text-align: left; }
+.talk:hover { background: #3a7d5c; }
+.talk b { display: block; font-size: 14px; font-weight: 600; line-height: 1.2; }
+.talk span { display: block; font-size: 11.5px; opacity: .85; line-height: 1.2; margin-top: 2px; }
+.talk svg { flex: none; }
+.popover .inp { background: var(--card); border-color: var(--raised-border); }

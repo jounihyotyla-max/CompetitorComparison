@@ -86,7 +86,6 @@ function Workspace() {
               ))}
             </div>
           )}
-          <button className="btn" type="button" onClick={() => { setAsking(true); setSelected(null); }} style={{ fontSize: 13, padding: "6px 12px" }}>Ask · Ideas</button>
           <span className="muted" style={{ fontSize: 12 }}>{user?.email} · {role}</span>
           <button className="btn" type="button" onClick={signOut} style={{ fontSize: 13, padding: "6px 10px" }}>Sign out</button>
         </div>
@@ -113,6 +112,12 @@ function Workspace() {
       </main>
 
       {sel && <CellPopover {...sel} documents={docMap} onClose={() => setSelected(null)} />}
+      {!asking && !sel && (
+        <button className="talk" type="button" onClick={() => setAsking(true)} aria-label="Talk to me: ask about the data, share an idea, report a problem">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M21 12a8 8 0 0 1-8 8H7l-4 3V12a8 8 0 0 1 8-8h2a8 8 0 0 1 8 8z"/><path d="M9 11h6M9 14h3"/></svg>
+          <span style={{ display: "block" }}><b>Talk to me</b><span>Want to know more? Have an idea? Something not working?</span></span>
+        </button>
+      )}
       <Ask open={asking && !sel} onClose={() => setAsking(false)} documents={docMap} onSelect={(x) => setSelected(x)} tab={tab} />
     </div>
   );
