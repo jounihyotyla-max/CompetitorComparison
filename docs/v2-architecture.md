@@ -1,6 +1,6 @@
 # Competitor Comparison v2 — architecture plan
 
-Status: draft for review, 23 Sep 2026. Nothing here is built yet.
+Status: living document. Written 23 Sep 2026 as the plan; phases 1–3 were built the same day (see §9 for what is live).
 
 v1 turned a hand-pasted blob of notes into a verified comparison table. v2 keeps the part that made v1 trustworthy
 (every stated value carries a verbatim quote that code, not the model, verifies) and replaces the pasting with
@@ -265,7 +265,7 @@ by Firebase Hosting; data via the Firebase web SDK with real-time listeners so t
 /fixtures       masked sample documents for tests    ← evolves from /fixtures
 ```
 
-Phases, each ending in something you can click:
+Phases, each ending in something you can click. Status as of 23 Sep 2026 evening: 1, 2 and 3 live; 4 and 5 open.
 
 1. **Foundation** — Firebase init, Auth with domain restriction, Firestore rules, `shared` schemas, seed fields from
    v1 presets + the doc's agtech field set, seed Nofence/Monil/Halter from the doc's competitor details as **manual
@@ -284,7 +284,7 @@ Phase 1 and 2 can be reviewed on a preview channel before anything is announced 
 ## 10. Open points
 
 - **Masking implementation**: is the other project's masking a reusable library or service? Decides whether phase 4
-  reuses or rebuilds it.
+  reuses or rebuilds it. Phase 1 shipped a regex masker (emails, phones, labelled names) as the placeholder.
 - **Anthropic API coverage**: confirm a data-processing agreement exists (Claude for Work / API terms). Only masked
   text is sent, but it should be on record.
 - **Aircall plan**: confirm AI Assist is enabled (you're admin, so a quick check).
