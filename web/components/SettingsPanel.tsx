@@ -27,7 +27,7 @@ export default function SettingsPanel({ fields, competitors, documents, markets 
 
   const run = async (fn: () => Promise<unknown>, ok: string) => {
     setBusy(true); setMsg("");
-    try { await fn(); setMsg(ok); } catch (e) { setMsg((e as Error).message); } finally { setBusy(false); }
+    try { await fn(); if (ok) setMsg(ok); } catch (e) { setMsg((e as Error).message); } finally { setBusy(false); }
   };
 
   if (!admin) return <p className="muted">Settings are for admins. You are signed in as {role ?? "…"}.</p>;

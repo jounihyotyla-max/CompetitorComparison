@@ -13,7 +13,7 @@ export default function CompetitorsPanel({ competitors, markets }: { competitors
   const [newSite, setNewSite] = useState("");
   const run = async (fn: () => Promise<unknown>, ok: string) => {
     setBusy(true); setMsg("");
-    try { await fn(); setMsg(ok); } catch (e) { setMsg((e as Error).message); } finally { setBusy(false); }
+    try { await fn(); if (ok) setMsg(ok); } catch (e) { setMsg((e as Error).message); } finally { setBusy(false); }
   };
   const save = (c: Competitor, patch: Partial<Competitor>, ok: string) =>
     run(() => updateDoc(doc(db, COLLECTIONS.competitors, c.id), { ...patch, updatedAt: new Date().toISOString() }), ok);
