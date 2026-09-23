@@ -68,7 +68,7 @@ service cloud.firestore {
     // Reviews are opened by the pipeline and decided by editors.
     match /reviews/{id} {
       allow read: if isViewer();
-      allow update: if isEditor() && onlyKeys(['status', 'decidedBy', 'decidedAt', 'decision', 'mergedValue']);
+      allow update: if isEditor() && onlyKeys(['status', 'decidedBy', 'decidedAt', 'decision', 'mergedValue', 'note', 'parkedBy']);
       allow create, delete: if false;
     }
 

@@ -10,8 +10,8 @@ export const MARKETS: Market[] = [
   { id: "US", label: "United States", group: "US", currencies: ["USD"], languages: ["en-US"], order: 1 },
   { id: "UK", label: "United Kingdom", group: "UK/IE", currencies: ["GBP"], languages: ["en-GB"], order: 2 },
   { id: "IE", label: "Ireland", group: "UK/IE", currencies: ["EUR"], languages: ["en-IE"], order: 3 },
-  { id: "NO", label: "Norway", group: "NO/SE", currencies: ["NOK"], languages: ["nb"], order: 4 },
-  { id: "SE", label: "Sweden", group: "NO/SE", currencies: ["SEK"], languages: ["sv"], order: 5 },
+  { id: "NO", label: "Norway", group: "NO", currencies: ["NOK"], languages: ["nb"], order: 4 },
+  { id: "SE", label: "Sweden", group: "SE", currencies: ["SEK"], languages: ["sv"], order: 5 },
   { id: "ES", label: "Spain", group: "ES", currencies: ["EUR"], languages: ["es"], order: 6 },
 ];
 

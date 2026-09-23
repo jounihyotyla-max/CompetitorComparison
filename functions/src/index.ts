@@ -65,6 +65,37 @@ export const battlecard = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds:
   return generateBattlecard(competitorId, marketId.data, model());
 });
 
+/**
+ * Admin: settle open reviews on descriptive (free_text) fields by accepting the newer claim, which is what the
+ * resolver now does automatically for new claims. Numbers, prices, booleans and categories stay in the inbox.
+ */
+export const autoResolveReviews = onCall({ timeoutSeconds: 300 }, async (req) => {
+  await requireRole(req.auth?.uid, ["admin"]);
+  const fields = new Map((await db.collection(COLLECTIONS.fields).get()).docs.map((d) => [d.id, d.data().type as string]));
+  const open = await db.collection(COLLECTIONS.reviews).where("status", "==", "open").get();
+  // 1. Fold duplicates: one review per cell, oldest kept, challenger claims merged.
+  const byCell = new Map<string, typeof open.docs>();
+  for (const d of open.docs) { const k = String(d.data().cellId ?? d.id); byCell.set(k, [...(byCell.get(k) ?? []), d]); }
+  let folded = 0;
+  for (const docs of byCell.values()) {
+    if (docs.length < 2) continue;
+    docs.sort((a, b) => String(a.data().createdAt).localeCompare(String(b.data().createdAt)));
+    const [keep, ...rest] = docs;
+    const ids = new Set<string>(keep.data().claimIds ?? []);
+    for (const d of rest) { for (const id of d.data().claimIds ?? []) ids.add(id); await d.ref.delete(); folded++; }
+    await keep.ref.update({ claimIds: [...ids] });
+  }
+  // 2. Descriptive fields: newest source wins.
+  let n = 0;
+  const stillOpen = await db.collection(COLLECTIONS.reviews).where("status", "==", "open").get();
+  for (const d of stillOpen.docs) {
+    if (fields.get(String(d.data().fieldId)) !== "free_text") continue;
+    await d.ref.update({ status: "accepted", decidedBy: "rule: descriptive field, newest source wins", decidedAt: nowIso(), decision: "auto-resolved" });
+    n++;
+  }
+  return { folded, resolved: n, remaining: stillOpen.size - n };
+});
+
 /** Daily at 06:00 Oslo time: re-fetch competitor pages older than the crawl interval, and all feeds. */
 export const crawlScheduled = onSchedule(
   { schedule: "every day 06:00", timeZone: "Europe/Oslo", timeoutSeconds: 1800, memory: "1GiB" },
@@ -85,9 +116,11 @@ export const crawlNow = onCall({ timeoutSeconds: 1800, memory: "1GiB" }, async (
 export const onReviewDecided = onDocumentUpdated(
   { document: `${COLLECTIONS.reviews}/{id}`, secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 300 },
   async (event) => {
-    const before = event.data?.before.data()?.status;
+    const before = String(event.data?.before.data()?.status ?? "");
     const after = Review.safeParse({ id: event.params.id, ...event.data?.after.data() });
-    if (!after.success || before !== "open" || after.data.status === "open") return;
+    if (!after.success) return;
+    const decided = after.data.status === "accepted" || after.data.status === "rejected" || after.data.status === "merged";
+    if (!decided || (before !== "open" && before !== "parked")) return;
     await applyReview(after.data, model());
   },
 );

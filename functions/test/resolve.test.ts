@@ -84,3 +84,17 @@ test("competitor matching is whole-word and alias aware", () => {
   const m = matchCompetitors("The farmer compared Halter's lease with our N3. He never mentioned halters for horses.", comps);
   assert.deepEqual(m.map((x) => x.id), ["halter", "nofence"]);
 });
+
+test("free-text at equal tier: newest statement replaces, no review; numbers still conflict", () => {
+  const text: FieldDefinition = { ...field, id: "connectivity", type: "free_text", comparisonRule: "qualitative_llm", perMarket: false };
+  const a = { ...claim("a", 1, 0), fieldId: "connectivity", marketId: "GLOBAL" as const, value: "Cellular, no base station", displayValue: "Cellular, no base station", numeric: undefined, lastCheckedAt: "2026-09-01T00:00:00.000Z" };
+  const cell = resolveClaim(a, text, null, [a], now, "rv1").cell;
+  const b = { ...a, id: "b", documentId: "doc_b", value: "Cellular + satellite, no base station", displayValue: "Cellular + satellite, no base station", lastCheckedAt: "2026-09-20T00:00:00.000Z" };
+  const r = resolveClaim(b, text, { cell, claim: a }, [a, b], now, "rv2");
+  assert.equal(r.outcome, "replaced");
+  assert.equal(r.review, null);
+  assert.deepEqual(r.supersede, ["a"]);
+  const n1 = claim("n1", 1, 10), n2 = claim("n2", 1, 5);
+  const ncell = resolveClaim(n1, field, null, [n1], now, "rv3").cell;
+  assert.equal(resolveClaim(n2, field, { cell: ncell, claim: n1 }, [n1, n2], now, "rv4").outcome, "conflict");
+});

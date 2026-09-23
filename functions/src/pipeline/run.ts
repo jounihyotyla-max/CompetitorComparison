@@ -39,7 +39,16 @@ async function forgetDocument(docId: string) {
   ]);
   const keys = new Set<string>();
   const batch = db.batch();
+  const claimIds = new Set(claims.docs.map((d) => d.id));
   for (const d of claims.docs) { const c = d.data() as Claim; keys.add(cellId(c.competitorId, c.fieldId, c.marketId)); batch.delete(d.ref); }
+  // Open or parked reviews that were about these claims have nothing left to decide.
+  for (const status of ["open", "parked"]) {
+    const rv = await db.collection(COLLECTIONS.reviews).where("status", "==", status).get();
+    for (const d of rv.docs) {
+      const r = d.data() as Review;
+      if (r.claimIds.some((id) => claimIds.has(id)) || (r.currentClaimId && claimIds.has(r.currentClaimId))) batch.delete(d.ref);
+    }
+  }
   for (const d of events.docs) batch.delete(d.ref);
   await batch.commit();
   // Cells backed by a deleted claim are rebuilt from whatever live claims remain; verdicts follow the cells.
@@ -165,7 +174,13 @@ export async function processDocument(docId: string, model: ModelClient, opts: {
         batch.set(claimRef, clean(claim));
         batch.set(cellRef, clean(r.cell));
         for (const id of r.supersede) batch.update(db.collection(COLLECTIONS.claims).doc(id), { supersededBy: claim.id });
-        if (r.review) batch.set(db.collection(COLLECTIONS.reviews).doc(r.review.id), clean(r.review));
+        if (r.review) {
+          // One review per cell: a second source disagreeing with the same cell joins the open review instead of
+          // opening another (two shop pages saying "5 Year Warranty" is one question, not two).
+          const existing = await db.collection(COLLECTIONS.reviews).where("cellId", "==", key).where("status", "in", ["open", "parked"]).limit(1).get();
+          if (existing.empty) batch.set(db.collection(COLLECTIONS.reviews).doc(r.review.id), clean(r.review));
+          else batch.update(existing.docs[0].ref, { claimIds: FieldValue.arrayUnion(claim.id) });
+        }
         await batch.commit();
         touched.add(`${field.id}|${marketId}`);
         claimCount++;

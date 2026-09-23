@@ -100,7 +100,11 @@ export function resolveClaim(
     return { cell: next, supersede: [], review: null, outcome: "corroborated" };
   }
 
-  if (outranks(incoming.tier, cell.tier)) {
+  // Descriptive fields are worded differently by every page; at equal trust the newest statement replaces the
+  // older one without a review. Facts with a right answer (numbers, prices, booleans, categories) still go to review.
+  const descriptiveRefresh = field.type === "free_text" && cell.tier !== null && incoming.tier === cell.tier
+    && incoming.lastCheckedAt >= (cell.lastCheckedAt ?? "");
+  if (outranks(incoming.tier, cell.tier) || descriptiveRefresh) {
     const losing = liveClaims.filter((c) => c.id !== incoming.id && !valuesAgree(incoming, c)).map((c) => c.id);
     const agreeing = liveClaims.filter((c) => c.id !== incoming.id && valuesAgree(incoming, c));
     const next = base({

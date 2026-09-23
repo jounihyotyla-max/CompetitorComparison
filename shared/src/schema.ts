@@ -268,7 +268,7 @@ export type CompetitorEvent = z.infer<typeof CompetitorEvent>;
 // ---------------------------------------------------------------- review inbox
 export const ReviewKind = z.enum(["conflict", "new_competitor", "low_confidence", "stale_pricing"]);
 export type ReviewKind = z.infer<typeof ReviewKind>;
-export const ReviewStatus = z.enum(["open", "accepted", "rejected", "merged"]);
+export const ReviewStatus = z.enum(["open", "parked", "accepted", "rejected", "merged"]);
 export type ReviewStatus = z.infer<typeof ReviewStatus>;
 export const Review = z.object({
   id: z.string(),
@@ -282,6 +282,9 @@ export const Review = z.object({
   currentClaimId: z.string().optional(),
   summary: z.string().default(""),
   status: ReviewStatus.default("open"),
+  /** Parked: someone looked and could not decide yet; the cell keeps its conflict flag. */
+  note: z.string().optional(),
+  parkedBy: z.string().optional(),
   decision: z.string().optional(),
   mergedValue: z.string().optional(),
   decidedBy: z.string().optional(),
