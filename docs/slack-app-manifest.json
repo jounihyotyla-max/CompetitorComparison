@@ -1,0 +1,6 @@
+{
+  "display_information": { "name": "Nofence competitor analytics", "description": "Reads competitor mentions in selected channels for the competitor analytics tool and posts its weekly digest.", "background_color": "#2b6a4c" },
+  "features": { "bot_user": { "display_name": "Nofence competitor analytics", "always_online": false } },
+  "oauth_config": { "scopes": { "bot": ["channels:read", "channels:history", "groups:read", "groups:history", "chat:write", "users:read", "users:read.email"] } },
+  "settings": { "org_deploy_enabled": false, "socket_mode_enabled": false, "token_rotation_enabled": false }
+}
