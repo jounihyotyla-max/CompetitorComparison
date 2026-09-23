@@ -86,7 +86,7 @@ function Workspace() {
               ))}
             </div>
           )}
-          <button className="btn" type="button" onClick={() => { setAsking(true); setSelected(null); }} style={{ fontSize: 13, padding: "6px 12px" }}>Ask the data</button>
+          <button className="btn" type="button" onClick={() => { setAsking(true); setSelected(null); }} style={{ fontSize: 13, padding: "6px 12px" }}>Ask · Ideas</button>
           <span className="muted" style={{ fontSize: 12 }}>{user?.email} · {role}</span>
           <button className="btn" type="button" onClick={signOut} style={{ fontSize: 13, padding: "6px 10px" }}>Sign out</button>
         </div>
@@ -113,7 +113,7 @@ function Workspace() {
       </main>
 
       {sel && <CellPopover {...sel} documents={docMap} onClose={() => setSelected(null)} />}
-      <Ask open={asking && !sel} onClose={() => setAsking(false)} documents={docMap} onSelect={(x) => setSelected(x)} />
+      <Ask open={asking && !sel} onClose={() => setAsking(false)} documents={docMap} onSelect={(x) => setSelected(x)} tab={tab} />
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/fire
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { defineSecret, defineString } from "firebase-functions/params";
-import { COLLECTIONS, MarketId, Review, Role } from "@cc/shared";
+import { COLLECTIONS, Competitor, MarketId, Review, Role } from "@cc/shared";
 import { db, nowIso } from "./lib/admin.ts";
 import { anthropicClient, DEFAULT_MODEL } from "./pipeline/extract.ts";
 import { processDocument } from "./pipeline/run.ts";
@@ -13,6 +13,7 @@ import { generateMarketing } from "./pipeline/marketing.ts";
 import { answer } from "./pipeline/ask.ts";
 import { seedAll } from "./seed/seed.ts";
 import { runCrawl } from "./connectors/crawl.ts";
+import { discoverPages } from "./connectors/discover.ts";
 
 setGlobalOptions({ region: "europe-west1", maxInstances: 10 });
 
@@ -134,6 +135,20 @@ export const crawlScheduled = onSchedule(
     await runCrawl({ everyDays: Number(settings?.crawlEveryDays ?? 7) });
   },
 );
+
+/** Admin: scan a competitor's website for pricing, product, news and regional pages plus feeds, to pick from. */
+export const suggestPages = onCall({ timeoutSeconds: 300, memory: "512MiB" }, async (req) => {
+  await requireRole(req.auth?.uid, ["admin"]);
+  const id = String(req.data?.competitorId ?? "");
+  const snap = await db.collection(COLLECTIONS.competitors).doc(id).get();
+  if (!snap.exists) throw new HttpsError("not-found", "competitor not found");
+  const c = Competitor.parse(snap.data());
+  const website = String(req.data?.website ?? c.website ?? c.crawlPages[0]?.url ?? "");
+  if (!website) throw new HttpsError("invalid-argument", "the competitor has no website yet");
+  const d = await discoverPages(website);
+  const have = new Set(c.crawlPages.map((p) => p.url.replace(/\/$/, "")));
+  return { ...d, pages: d.pages.filter((p) => !have.has(p.url)), feeds: d.feeds.filter((f) => !c.feeds.includes(f)) };
+});
 
 /** Admin: crawl now, all competitors or one. Ignores the interval. */
 export const crawlNow = onCall({ timeoutSeconds: 1800, memory: "1GiB" }, async (req) => {

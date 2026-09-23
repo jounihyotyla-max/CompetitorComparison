@@ -75,6 +75,14 @@ service cloud.firestore {
     match /battlecards/{id} { allow read: if isViewer(); allow write: if false; }
     match /snippets/{id}    { allow read: if isViewer(); allow write: if false; }
 
+    // Ideas and problems: anyone signed in can file one; admins read and close them.
+    match /feedback/{id} {
+      allow read: if isAdmin() || (isViewer() && resource.data.userId == request.auth.uid);
+      allow create: if isViewer() && request.resource.data.userId == request.auth.uid && request.resource.data.status == 'open';
+      allow update: if isAdmin() && onlyKeys(['status', 'doneAt']);
+      allow delete: if false;
+    }
+
     // Ask: a user sees their own questions; admins see all (to find data gaps).
     match /questions/{id} {
       allow read: if isViewer() && (resource.data.userId == request.auth.uid || isAdmin());

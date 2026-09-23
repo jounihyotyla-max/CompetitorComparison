@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { doc, updateDoc } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
-import { COLLECTIONS, User, type Competitor, type DecayDays, type FieldDefinition, type Market, type Role, type SourceDocument } from "@cc/shared";
+import { COLLECTIONS, Feedback, User, type Competitor, type DecayDays, type FieldDefinition, type Market, type Role, type SourceDocument } from "@cc/shared";
 import CompetitorsPanel from "./CompetitorsPanel";
 import { resetIntros } from "./Intro";
 import { can, useAuth } from "@/lib/auth";
@@ -17,6 +17,8 @@ export default function SettingsPanel({ fields, competitors, documents, markets 
   const { role } = useAuth();
   const admin = can(role, "admin");
   const users = useCollection(COLLECTIONS.users, User, [], admin);
+  const feedback = useCollection(COLLECTIONS.feedback, Feedback, [], admin);
+  const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
 
@@ -93,8 +95,29 @@ export default function SettingsPanel({ fields, competitors, documents, markets 
           </tbody>
         </table></div>
       </div>
+      <div className="blueprint tablebox" data-group="pricing">
+        <div className="section-head" style={{ justifyContent: "space-between" }}>
+          <span style={{ display: "flex", gap: 12, alignItems: "baseline" }}><h5>Ideas and problems</h5><span className="muted">Filed from the Ask pane · {feedback.docs.filter((f) => f.status === "open").length} open</span></span>
+          <button className="btn" type="button" style={{ background: "rgba(255,255,255,.15)", color: "inherit", borderColor: "rgba(255,255,255,.4)", fontSize: 12 }} disabled={!feedback.docs.some((f) => f.status === "open")}
+            onClick={async () => {
+              const open = feedback.docs.filter((f) => f.status === "open").sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+              const md = `Feedback from the competitor analytics tool (${open.length} open):\n\n` + open.map((f) => `- ${f.createdAt.slice(0, 10)} · ${f.email || "someone"} · on ${f.tab || "?"} tab: ${f.text}`).join("\n");
+              try { await navigator.clipboard.writeText(md); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch {}
+            }}>{copied ? "Copied" : "Copy for Claude"}</button>
+        </div>
+        <div>
+          {[...feedback.docs].sort((a, b) => (a.status === b.status ? b.createdAt.localeCompare(a.createdAt) : a.status === "open" ? -1 : 1)).map((f) => (
+            <div key={f.id} style={{ display: "flex", gap: 12, padding: "10px 20px", borderBottom: "1px solid var(--line)", alignItems: "baseline", opacity: f.status === "done" ? 0.55 : 1 }}>
+              <span className="muted" style={{ fontSize: 12, minWidth: 90 }}>{f.createdAt.slice(0, 10)}</span>
+              <span style={{ flex: 1 }}>{f.text}<div className="muted" style={{ fontSize: 11 }}>{f.email}{f.tab ? ` · ${f.tab} tab` : ""}</div></span>
+              <button className="btn" type="button" style={{ fontSize: 12, padding: "3px 9px" }} disabled={busy} onClick={() => run(() => updateDoc(doc(db, COLLECTIONS.feedback, f.id), f.status === "open" ? { status: "done", doneAt: new Date().toISOString() } : { status: "open" }), f.status === "open" ? "Marked done." : "Reopened.")}>{f.status === "open" ? "Done" : "Reopen"}</button>
+            </div>
+          ))}
+          {feedback.docs.length === 0 && <p className="muted" style={{ margin: 0, padding: 20 }}>Nothing filed yet. Anyone signed in can send an idea or a problem from Ask · Ideas at the top right.</p>}
+        </div>
+      </div>
       <p className="muted" style={{ margin: 0, fontSize: 12 }}>
-        <a href="#" onClick={(e) => { e.preventDefault(); resetIntros(); setMsg("The introduction boxes will show again on each tab."); }}>Show the introduction boxes again</a>
+        <a href="#" onClick={(e) => { e.preventDefault(); resetIntros(); setMsg("The tips will show again on each tab."); }}>Show the tips again</a>
       </p>
     </div>
   );

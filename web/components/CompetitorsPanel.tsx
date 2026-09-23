@@ -66,7 +66,29 @@ function CompetitorRow({ c, markets, busy, save, crawl }: {
   const [kind, setKind] = useState<CrawlPage["kind"]>("pricing");
   const [feed, setFeed] = useState("");
   const [aliases, setAliases] = useState(c.aliases.join(", "));
+  const [sugg, setSugg] = useState<{ pages: (CrawlPage & { text: string })[]; feeds: string[]; notes: string[] } | null>(null);
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [finding, setFinding] = useState(false);
+  const [findErr, setFindErr] = useState("");
   const countries = markets.filter((m) => m.id !== "GLOBAL").sort((a, b) => a.order - b.order);
+
+  const suggest = async () => {
+    setFinding(true); setFindErr(""); setSugg(null);
+    try {
+      const r = await httpsCallable<{ competitorId: string }, { pages: (CrawlPage & { text: string })[]; feeds: string[]; notes: string[] }>(functions, "suggestPages")({ competitorId: c.id });
+      setSugg(r.data);
+      setPicked(new Set([...r.data.pages.filter((p) => p.kind === "pricing" || p.kind === "product").map((p) => p.url), ...r.data.feeds]));
+    } catch (e) { setFindErr((e as Error).message); } finally { setFinding(false); }
+  };
+  const addPicked = () => {
+    if (!sugg) return;
+    const pages = sugg.pages.filter((p) => picked.has(p.url)).map(({ url, label, marketId, kind }) => ({ url, label: label.slice(0, 60), marketId, kind }));
+    const feeds = sugg.feeds.filter((f) => picked.has(f));
+    save(c, { crawlPages: [...c.crawlPages, ...pages], feeds: [...c.feeds, ...feeds] }, `${pages.length} page${pages.length === 1 ? "" : "s"} and ${feeds.length} feed${feeds.length === 1 ? "" : "s"} added to ${c.name}. Crawl it when ready.`).then(() => setSugg(null));
+  };
+  const setKindFor = (url: string, kind: CrawlPage["kind"]) => sugg && setSugg({ ...sugg, pages: sugg.pages.map((p) => (p.url === url ? { ...p, kind } : p)) });
+  const setMarketFor = (url: string, marketId: MarketId) => sugg && setSugg({ ...sugg, pages: sugg.pages.map((p) => (p.url === url ? { ...p, marketId } : p)) });
+  const toggle = (k: string) => setPicked((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
 
   const addPage = () => {
     const u = url.trim();
@@ -98,8 +120,40 @@ function CompetitorRow({ c, markets, busy, save, crawl }: {
                 <option value="active">active</option><option value="draft">draft</option><option value="archived">archived</option>
               </select>
             </label>
+            <button className="btn" type="button" disabled={busy || finding || !(c.website || c.crawlPages[0])} onClick={suggest} style={{ alignSelf: "flex-end" }} title="Scan their website for pricing, product, news and regional pages, and feeds">{finding ? "Scanning…" : "Suggest pages"}</button>
             <button className="btn" type="button" disabled={busy || c.crawlPages.length + c.feeds.length === 0} onClick={() => crawl(c.id)} style={{ alignSelf: "flex-end" }}>Crawl {c.name} now</button>
           </div>
+          {findErr && <p className="bad" style={{ margin: 0, fontSize: 12 }}>{findErr}</p>}
+          {sugg && (
+            <div className="blueprint" style={{ padding: 12, display: "flex", flexDirection: "column", gap: 8, background: "color-mix(in srgb, var(--card) 70%, var(--content))" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
+                <b>Found on {c.website ?? c.crawlPages[0]?.url}</b>
+                <span className="muted" style={{ fontSize: 12 }}>{sugg.pages.length} page{sugg.pages.length === 1 ? "" : "s"}, {sugg.feeds.length} feed{sugg.feeds.length === 1 ? "" : "s"} · pricing and product pre-selected</span>
+              </div>
+              {sugg.pages.map((p) => (
+                <label key={p.url} style={{ display: "grid", gridTemplateColumns: "auto 110px 90px 1fr", gap: 8, alignItems: "center", fontSize: 13 }}>
+                  <input type="checkbox" checked={picked.has(p.url)} onChange={() => toggle(p.url)} />
+                  <select className="inp" style={{ padding: "3px 6px", fontSize: 12 }} value={p.kind} onChange={(e) => setKindFor(p.url, e.target.value as CrawlPage["kind"])}>
+                    {["pricing", "product", "news", "about", "other"].map((k) => <option key={k} value={k}>{k}</option>)}
+                  </select>
+                  <select className="inp" style={{ padding: "3px 6px", fontSize: 12 }} value={p.marketId} onChange={(e) => setMarketFor(p.url, e.target.value as MarketId)}>
+                    <option value="GLOBAL">All</option>{countries.map((m) => <option key={m.id} value={m.id}>{m.id}</option>)}
+                  </select>
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={p.url}>{p.text ? <><b style={{ fontWeight: 500 }}>{p.text}</b> <span className="muted">· </span></> : null}<span className="muted">{p.url.replace(/^https?:\/\//, "")}</span></span>
+                </label>
+              ))}
+              {sugg.feeds.map((f) => (
+                <label key={f} style={{ display: "grid", gridTemplateColumns: "auto 208px 1fr", gap: 8, alignItems: "center", fontSize: 13 }}>
+                  <input type="checkbox" checked={picked.has(f)} onChange={() => toggle(f)} /><span className="rule" style={{ justifySelf: "start" }}>feed</span><span className="muted" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f}</span>
+                </label>
+              ))}
+              {sugg.pages.length + sugg.feeds.length === 0 && <span className="muted">Nothing new found beyond what is already watched.{sugg.notes.length ? ` ${sugg.notes.join(" · ")}` : ""}</span>}
+              <div style={{ display: "flex", gap: 8 }}>
+                <button className="btn btn-primary" type="button" disabled={busy || picked.size === 0} onClick={addPicked}>Add {picked.size} selected</button>
+                <button className="btn" type="button" onClick={() => setSugg(null)}>Cancel</button>
+              </div>
+            </div>
+          )}
 
           <div>
             <div className="muted" style={{ fontSize: 12, marginBottom: 4 }}>Pages watched</div>

@@ -23,6 +23,7 @@ export const COLLECTIONS = {
   battlecards: "battlecards",
   snippets: "snippets",
   questions: "questions",
+  feedback: "feedback",
 } as const;
 
 const iso = z.string().describe("ISO-8601 date-time");
@@ -366,3 +367,16 @@ export const Question = z.object({
   answeredAt: iso.optional(),
 });
 export type Question = z.infer<typeof Question>;
+
+/** Ideas and problems reported from the Ask pane. Admins read them; "Copy for Claude" hands them to the builder. */
+export const Feedback = z.object({
+  id: z.string(),
+  userId: z.string(),
+  email: z.string().default(""),
+  text: z.string().min(1),
+  tab: z.string().default(""),
+  status: z.enum(["open", "done"]).default("open"),
+  createdAt: iso,
+  doneAt: iso.optional(),
+});
+export type Feedback = z.infer<typeof Feedback>;
