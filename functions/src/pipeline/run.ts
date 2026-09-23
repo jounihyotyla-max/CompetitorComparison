@@ -53,7 +53,14 @@ async function rebuildCell(key: string) {
   const ref = db.collection(COLLECTIONS.cells).doc(key);
   const snap = await ref.get();
   if (!snap.exists) return;
-  const cell = Cell.parse(snap.data());
+  const parsed = Cell.safeParse(snap.data());
+  if (!parsed.success) {
+    // A cell from an older schema (e.g. a market that no longer exists) cannot be rebuilt; drop it with its verdict.
+    log(key, "dropping legacy cell:", parsed.error.issues[0]?.message);
+    await Promise.all([ref.delete(), db.collection(COLLECTIONS.verdicts).doc(key).delete()]);
+    return;
+  }
+  const cell = parsed.data;
   const live = await liveClaims(cell.competitorId, cell.fieldId, cell.marketId);
   if (live.length === 0) { await ref.delete(); return; }
   const fieldSnap = await db.collection(COLLECTIONS.fields).doc(cell.fieldId).get();
@@ -72,7 +79,7 @@ async function rebuildCell(key: string) {
 const liveClaims = async (competitorId: string, fieldId: string, marketId: MarketId) => {
   const q = await db.collection(COLLECTIONS.claims)
     .where("competitorId", "==", competitorId).where("fieldId", "==", fieldId).where("marketId", "==", marketId).get();
-  return q.docs.map((d) => Claim.parse(d.data())).filter((c) => !c.supersededBy && !c.rejected);
+  return q.docs.flatMap((d) => { const r = Claim.safeParse(d.data()); return r.success ? [r.data] : []; }).filter((c) => !c.supersededBy && !c.rejected);
 };
 
 export async function processDocument(docId: string, model: ModelClient, opts: { force?: boolean } = {}) {

@@ -36,7 +36,11 @@ export default function SettingsPanel({ fields, competitors, documents }: { fiel
           <button className="btn btn-primary" type="button" disabled={busy} onClick={() => run(() => httpsCallable(functions, "seed")({ withNotes: true }), "Registry and sample notes loaded.")}>Load registry + sample notes</button>
           <button className="btn btn-secondary" type="button" disabled={busy} onClick={() => run(() => httpsCallable(functions, "seed")({ withNotes: false }), "Registry loaded.")}>Registry only</button>
           <button className="btn btn-secondary" type="button" disabled={busy || documents.length === 0} title="Runs every source through the pipeline again, e.g. after a field or market change"
-            onClick={() => run(async () => { for (const d of documents) await httpsCallable(functions, "reprocessDocument")({ id: d.id }); }, `Re-ran ${documents.length} source${documents.length === 1 ? "" : "s"}.`)}>Re-run all sources</button>
+            onClick={() => run(async () => {
+              const failed: string[] = [];
+              for (const d of documents) { try { await httpsCallable(functions, "reprocessDocument")({ id: d.id }); } catch (e) { failed.push(`${d.title || d.id}: ${(e as Error).message}`); } }
+              if (failed.length) throw new Error(`${documents.length - failed.length} re-ran, ${failed.length} failed — ${failed.join("; ")}`);
+            }, `Re-ran ${documents.length} source${documents.length === 1 ? "" : "s"}.`)}>Re-run all sources</button>
         </div>
         {msg && <p style={{ fontSize: 12, margin: 0 }}>{msg}</p>}
       </div>
