@@ -4,6 +4,7 @@
 .claude/*.lock
 .claude/settings.local.json
 .env
+!functions/.env
 .firebase/
 .idea/
 .pytest_cache/
