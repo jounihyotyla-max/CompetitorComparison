@@ -88,10 +88,10 @@ export default function Overview({ fields, competitors, cells, verdicts, market,
         const rows = fields.filter((f) => f.group === g.id && f.enabled).sort((a, b) => a.order - b.order);
         if (rows.length === 0) return null;
         return (
-          <div key={g.id} className="blueprint" style={{ padding: 0, overflowX: "auto" }}>
+          <div key={g.id} className="blueprint tablebox">
             <Corners />
             <div className="section-head"><h5>{g.title}</h5><span className="muted" style={{ fontSize: 12 }}>{g.sub}</span></div>
-            <table className="table ov-table" style={{ minWidth: 640 }}>
+            <div className="scrollx"><table className="table ov-table" style={{ minWidth: 640 }}>
               <thead>
                 <tr>
                   <th style={{ width: 190 }} />
@@ -114,7 +114,7 @@ export default function Overview({ fields, competitors, cells, verdicts, market,
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
           </div>
         );
       })}

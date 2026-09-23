@@ -45,10 +45,10 @@ export default function Sources({ documents, competitors }: { documents: SourceD
 
   return (
     <div className="two-col">
-      <div className="blueprint" style={{ padding: 0, overflowX: "auto" }}>
+      <div className="blueprint tablebox">
         <Corners />
         <div className="section-head"><h5>Source register</h5><span className="muted" style={{ fontSize: 12 }}>{documents.length} source{documents.length === 1 ? "" : "s"} · everything in the tables traces back to one of these</span></div>
-        <table className="table register">
+        <div className="scrollx"><table className="table register">
           <thead><tr><th>Source</th><th>Company</th><th>Tier</th><th>Captured</th><th>Status</th><th>Claims</th>{can(role, "admin") && <th />}</tr></thead>
           <tbody>
             {sorted.map((d) => (
@@ -64,7 +64,7 @@ export default function Sources({ documents, competitors }: { documents: SourceD
             ))}
             {sorted.length === 0 && <tr><td colSpan={7} className="muted">No sources yet.</td></tr>}
           </tbody>
-        </table>
+        </table></div>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>

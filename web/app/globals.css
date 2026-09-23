@@ -145,3 +145,7 @@ textarea.inp { resize: vertical; line-height: 1.5; }
 .rule { font-family: ui-monospace, monospace; font-size: 11px; padding: 1px 5px; background: color-mix(in srgb, var(--color-text) 8%, transparent); }
 .leg .icon { margin-right: 4px; }
 .dark .quote-mark { background: color-mix(in srgb, var(--color-accent) 45%, transparent); }
+/* Section boxes: the box itself never scrolls (its corner marks sit outside it and would make it a 6px vertical
+   scroll trap); only the inner .scrollx wrapper scrolls, sideways, when the table is wider than the viewport. */
+.tablebox { padding: 0; overflow: visible; }
+.scrollx { overflow-x: auto; overflow-y: hidden; }
