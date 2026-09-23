@@ -28,6 +28,8 @@ flowchart LR
 - **Markets** are the six countries Nofence sells in (US, UK, IE, NO, SE, ES); the UI groups UK/IE and NO/SE.
 - **Freshness** is per field (30 / 90 / 180 / 365 days / never) from *last checked*, not from capture.
 - **Masking** replaces customer names, emails and phone numbers before anything is stored or sent to the model.
+- **Crawler**: competitor pages become tier-1 sources when their text changes; an unchanged page only refreshes
+  *last checked*. A newer snapshot of a page supersedes what that page said before.
 
 ## Repository
 
@@ -71,6 +73,7 @@ confirm or outdate cells; admins also manage fields, decay, competitors and re-r
 
 ## Status
 
-Phase 1 and 2 of the plan are live: registry, pipeline, Overview with market switcher and evidence popover, Sources
-register with manual notes, Review inbox, Settings. Next: website + RSS connectors (phase 3), Slack / HubSpot /
-Aircall with masking (phase 4), Battlecards, Marketing, Ask and the weekly digest (phase 5).
+Live: registry, pipeline, Overview with market switcher and evidence popover, Sources register with manual notes,
+Review inbox, Battlecards (generated from cells, flagged when inputs change), website + RSS crawler (daily 06:00
+Oslo, on demand from Settings), competitor editor. Next: Slack / HubSpot / Aircall with masking (phase 4),
+Marketing, Ask and the weekly digest (phase 5).
