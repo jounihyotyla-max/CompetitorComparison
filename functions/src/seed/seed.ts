@@ -8,12 +8,18 @@ import { SEED_NOTES } from "./notes.ts";
  * because we only set keys that are missing or are structural). Sample notes are created only when absent,
  * so re-running seed never re-triggers the pipeline for them.
  */
-export async function seedAll(db: Firestore, opts: { withNotes: boolean; author: string }) {
+export async function seedAll(db: Firestore, opts: { withNotes: boolean; author: string; resetCompetitors?: boolean }) {
   const batch = db.batch();
   const wanted = new Set(MARKETS.map((m) => m.id as string));
   for (const d of (await db.collection(COLLECTIONS.markets).get()).docs) if (!wanted.has(d.id)) batch.delete(d.ref);
   for (const m of MARKETS) batch.set(db.collection(COLLECTIONS.markets).doc(m.id), Market.parse(m), { merge: true });
-  for (const c of COMPETITORS) batch.set(db.collection(COLLECTIONS.competitors).doc(c.id), Competitor.parse(c), { merge: true });
+  // Competitors are created only when missing: admins edit pages, feeds and aliases in the tool.
+  const existingCompetitors = new Set((await db.collection(COLLECTIONS.competitors).get()).docs.map((d) => d.id));
+  for (const c of COMPETITORS) {
+    if (!existingCompetitors.has(c.id)) batch.set(db.collection(COLLECTIONS.competitors).doc(c.id), Competitor.parse(c));
+    // Explicit reset: put the registry's watched pages, feeds and aliases back (status and other edits are kept).
+    else if (opts.resetCompetitors) batch.update(db.collection(COLLECTIONS.competitors).doc(c.id), { crawlPages: c.crawlPages, feeds: c.feeds, aliases: c.aliases, website: c.website ?? null, updatedAt: new Date().toISOString() });
+  }
   const existingFields = new Set((await db.collection(COLLECTIONS.fields).get()).docs.map((d) => d.id));
   let newFields = 0;
   for (const f of FIELDS) {

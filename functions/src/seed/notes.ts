@@ -10,7 +10,7 @@ const captured = "2026-09-22T12:00:00.000Z";
 const note = (id: string, competitorId: string, title: string, text: string): SourceDocument => ({
   id, connector: "manual", externalId: "", externalUrl: "", title, author: "jouni.hyotyla@nofence.com",
   capturedAt: captured, competitorIds: [competitorId], marketId: "GLOBAL", tier: 4, relevance: 1, status: "new",
-  snapshotPath: "", text, contentHash: "", charCount: text.length, claimCount: 0, eventCount: 0,
+  snapshotPath: "", text, contentHash: "", charCount: text.length, claimCount: 0, eventCount: 0, checkCount: 0,
 });
 
 export const SEED_NOTES: SourceDocument[] = [

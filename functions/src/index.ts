@@ -1,6 +1,7 @@
 import { setGlobalOptions } from "firebase-functions/v2";
 import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/firestore";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
+import { onSchedule } from "firebase-functions/v2/scheduler";
 import { defineSecret, defineString } from "firebase-functions/params";
 import { COLLECTIONS, Review, Role } from "@cc/shared";
 import { db, nowIso } from "./lib/admin.ts";
@@ -8,6 +9,7 @@ import { anthropicClient, DEFAULT_MODEL } from "./pipeline/extract.ts";
 import { processDocument } from "./pipeline/run.ts";
 import { applyReview } from "./pipeline/review.ts";
 import { seedAll } from "./seed/seed.ts";
+import { runCrawl } from "./connectors/crawl.ts";
 
 setGlobalOptions({ region: "europe-west1", maxInstances: 10 });
 
@@ -49,8 +51,24 @@ export const reprocessDocument = onCall(
 export const seed = onCall({ timeoutSeconds: 300 }, async (req) => {
   await requireRole(req.auth?.uid, ["admin"]);
   const withNotes = req.data?.withNotes !== false;
-  const result = await seedAll(db, { withNotes, author: req.auth?.token.email ?? "seed" });
+  const result = await seedAll(db, { withNotes, author: req.auth?.token.email ?? "seed", resetCompetitors: req.data?.resetCompetitors === true });
   return result;
+});
+
+/** Daily at 06:00 Oslo time: re-fetch competitor pages older than the crawl interval, and all feeds. */
+export const crawlScheduled = onSchedule(
+  { schedule: "every day 06:00", timeZone: "Europe/Oslo", timeoutSeconds: 1800, memory: "1GiB" },
+  async () => {
+    const settings = (await db.collection(COLLECTIONS.settings).doc("global").get()).data();
+    await runCrawl({ everyDays: Number(settings?.crawlEveryDays ?? 7) });
+  },
+);
+
+/** Admin: crawl now, all competitors or one. Ignores the interval. */
+export const crawlNow = onCall({ timeoutSeconds: 1800, memory: "1GiB" }, async (req) => {
+  await requireRole(req.auth?.uid, ["admin"]);
+  const competitorId = req.data?.competitorId ? String(req.data.competitorId) : undefined;
+  return runCrawl({ competitorId, force: true });
 });
 
 /** An editor decided a review in the browser (open -> accepted / rejected / merged); apply it to the cell. */

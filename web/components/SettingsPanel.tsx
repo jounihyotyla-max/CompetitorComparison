@@ -2,7 +2,8 @@
 import { useState } from "react";
 import { doc, updateDoc } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
-import { COLLECTIONS, User, type Competitor, type DecayDays, type FieldDefinition, type Role, type SourceDocument } from "@cc/shared";
+import { COLLECTIONS, User, type Competitor, type DecayDays, type FieldDefinition, type Market, type Role, type SourceDocument } from "@cc/shared";
+import CompetitorsPanel from "./CompetitorsPanel";
 import { can, useAuth } from "@/lib/auth";
 import { db, functions } from "@/lib/firebase";
 import { useCollection } from "@/lib/data";
@@ -11,7 +12,7 @@ const DECAYS: { v: DecayDays; label: string }[] = [
   { v: 30, label: "30 days" }, { v: 90, label: "90 days" }, { v: 180, label: "180 days" }, { v: 365, label: "1 year" }, { v: null, label: "Never" },
 ];
 
-export default function SettingsPanel({ fields, competitors, documents }: { fields: FieldDefinition[]; competitors: Competitor[]; documents: SourceDocument[] }) {
+export default function SettingsPanel({ fields, competitors, documents, markets }: { fields: FieldDefinition[]; competitors: Competitor[]; documents: SourceDocument[]; markets: Market[] }) {
   const { role } = useAuth();
   const admin = can(role, "admin");
   const users = useCollection(COLLECTIONS.users, User, [], admin);
@@ -35,6 +36,7 @@ export default function SettingsPanel({ fields, competitors, documents }: { fiel
         <div style={{ display: "flex", gap: 8 }}>
           <button className="btn btn-primary" type="button" disabled={busy} onClick={() => run(() => httpsCallable(functions, "seed")({ withNotes: true }), "Registry and sample notes loaded.")}>Load registry + sample notes</button>
           <button className="btn btn-secondary" type="button" disabled={busy} onClick={() => run(() => httpsCallable(functions, "seed")({ withNotes: false }), "Registry loaded.")}>Registry only</button>
+          <button className="btn btn-secondary" type="button" disabled={busy} title="Puts the default watched pages, feeds and aliases back on Nofence, Monil and Halter" onClick={() => run(() => httpsCallable(functions, "seed")({ withNotes: false, resetCompetitors: true }), "Watched pages reset to defaults.")}>Reset watched pages</button>
           <button className="btn btn-secondary" type="button" disabled={busy || documents.length === 0} title="Runs every source through the pipeline again, e.g. after a field or market change"
             onClick={() => run(async () => {
               const failed: string[] = [];
@@ -45,7 +47,9 @@ export default function SettingsPanel({ fields, competitors, documents }: { fiel
         {msg && <p style={{ fontSize: 12, margin: 0 }}>{msg}</p>}
       </div>
 
-      <div className="blueprint tablebox">
+      <CompetitorsPanel competitors={competitors} markets={markets} />
+
+      <div className="blueprint tablebox" data-group="features">
         <div className="section-head"><h5>Fields and freshness</h5><span className="muted" style={{ fontSize: 12 }}>How long a value stays trusted before it is flagged stale</span></div>
         <div className="scrollx"><table className="table register">
           <thead><tr><th>Field</th><th>Group</th><th>Type</th><th>Rule</th><th>Per market</th><th>Stale after</th><th>On</th></tr></thead>
@@ -67,7 +71,7 @@ export default function SettingsPanel({ fields, competitors, documents }: { fiel
         </table></div>
       </div>
 
-      <div className="blueprint tablebox">
+      <div className="blueprint tablebox" data-group="context">
         <div className="section-head"><h5>People</h5><span className="muted" style={{ fontSize: 12 }}>Viewer reads · Editor adds notes and reviews · Admin manages everything. Keep at least two admins.</span></div>
         <div className="scrollx"><table className="table register">
           <thead><tr><th>Person</th><th>Since</th><th>Role</th></tr></thead>

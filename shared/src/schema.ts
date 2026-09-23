@@ -147,6 +147,9 @@ export const SourceDocument = z.object({
   /** Set by the pipeline: how many claims / events this document produced. */
   claimCount: z.number().int().default(0),
   eventCount: z.number().int().default(0),
+  /** Connectors that re-visit a source (web, rss): when it was last fetched and found unchanged. */
+  lastCheckedAt: iso.optional(),
+  checkCount: z.number().int().default(0),
 });
 export type SourceDocument = z.infer<typeof SourceDocument>;
 
@@ -182,6 +185,8 @@ export const Claim = z.object({
   rejectedBy: z.string().optional(),
   /** Numeric shadow for rule verdicts on price / number fields. */
   numeric: z.object({ amount: z.number(), currency: z.string().optional(), per: z.string().optional() }).optional(),
+  /** `connector:externalId` of the document; a newer snapshot of the same source supersedes older claims from it. */
+  sourceKey: z.string().optional(),
 });
 export type Claim = z.infer<typeof Claim>;
 
@@ -304,6 +309,8 @@ export const Settings = z.object({
   digestSlackChannel: z.string().default(""),
   digestWeekday: z.number().int().min(0).max(6).default(1),
   crawlEveryDays: z.number().int().min(1).default(7),
+  /** Trade-media feeds not tied to one competitor; items are kept only when they mention a known competitor. */
+  newsFeeds: z.array(z.url()).default([]),
   slackChannels: z.array(z.string()).default([]),
   updatedAt: iso,
 });

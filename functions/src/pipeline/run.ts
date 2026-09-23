@@ -139,13 +139,27 @@ export async function processDocument(docId: string, model: ModelClient, opts: {
         const claimRef = db.collection(COLLECTIONS.claims).doc();
         const claim = verifyClaim({ ...raw, marketId }, { doc, competitorId, field, text, claimId: claimRef.id, now }, rep);
         if (!claim) continue;
-        const live = await liveClaims(competitorId, field.id, marketId);
+        const sourceKey = doc.externalId ? `${doc.connector}:${doc.externalId}` : undefined;
+        claim.sourceKey = sourceKey;
+        let live = await liveClaims(competitorId, field.id, marketId);
+        // A newer snapshot of the same source (a re-crawled page, a re-fetched feed item) replaces what that
+        // source said before, whatever the values: the old text is no longer what the source says.
+        const stale = sourceKey ? live.filter((c) => c.sourceKey === sourceKey && c.documentId !== doc.id) : [];
+        if (stale.length) {
+          const sb = db.batch();
+          for (const c of stale) sb.update(db.collection(COLLECTIONS.claims).doc(c.id), { supersededBy: claim.id });
+          await sb.commit();
+          live = live.filter((c) => !stale.includes(c));
+        }
         const key = cellId(competitorId, field.id, marketId);
         const cellRef = db.collection(COLLECTIONS.cells).doc(key);
         const cellSnap = await cellRef.get();
         const cell = cellSnap.exists ? Cell.parse(cellSnap.data()) : null;
         const currentClaim = cell?.claimId ? live.find((c) => c.id === cell.claimId) ?? null : null;
-        const r = resolveClaim(claim, field, cell ? { cell, claim: currentClaim } : null, [...live, claim], now, db.collection(COLLECTIONS.reviews).doc().id);
+        // If the cell's backing claim was just superseded by this same source, fall back to the best remaining live claim.
+        const anchor = currentClaim ?? (cell && stale.some((c) => c.id === cell.claimId) ? live.sort((a, b) => a.tier - b.tier)[0] ?? null : null);
+        const currentForResolve = cell ? (anchor ? { cell: anchor.id === cell.claimId ? cell : { ...cell, claimId: anchor.id, value: anchor.value, displayValue: anchor.displayValue, tier: anchor.tier, status: anchor.status, numeric: anchor.numeric }, claim: anchor } : { cell, claim: null }) : null;
+        const r = resolveClaim(claim, field, currentForResolve, [...live, claim], now, db.collection(COLLECTIONS.reviews).doc().id);
 
         const batch = db.batch();
         batch.set(claimRef, clean(claim));
@@ -224,6 +238,30 @@ export async function recomputeVerdicts(keys: { fieldId: string; marketId: Marke
     }
     await b2.commit();
   }
+}
+
+/** A source was re-fetched and is byte-identical: its claims and their cells were checked again today. */
+export async function touchDocument(docId: string, now: string) {
+  const claims = await db.collection(COLLECTIONS.claims).where("documentId", "==", docId).get();
+  const batch = db.batch();
+  const keys = new Set<string>();
+  for (const d of claims.docs) {
+    const c = d.data() as Claim;
+    if (c.supersededBy || c.rejected) continue;
+    batch.update(d.ref, { lastCheckedAt: now });
+    keys.add(cellId(c.competitorId, c.fieldId, c.marketId));
+  }
+  for (const key of keys) {
+    const ref = db.collection(COLLECTIONS.cells).doc(key);
+    const snap = await ref.get();
+    if (!snap.exists) continue;
+    const cell = snap.data() as Cell;
+    // Only when this document backs the cell (or agrees with it) does the check refresh the cell itself.
+    if (claims.docs.some((d) => d.id === cell.claimId)) batch.update(ref, { lastCheckedAt: now, updatedAt: now });
+  }
+  batch.update(db.collection(COLLECTIONS.documents).doc(docId), { lastCheckedAt: now, checkCount: FieldValue.increment(1) });
+  await batch.commit();
+  return keys.size;
 }
 
 export type { Review };

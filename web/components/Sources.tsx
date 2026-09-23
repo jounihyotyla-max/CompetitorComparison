@@ -55,7 +55,7 @@ export default function Sources({ documents, competitors, markets }: { documents
                 <td><TierTag tier={d.tier} /></td>
                 <td>{fmtDate(d.capturedAt)}</td>
                 <td><span className={STATUS_CLASS[d.status]}>{d.status}</span>{d.error && <div className="bad" style={{ fontSize: 11, maxWidth: 260, whiteSpace: "pre-wrap" }}>{d.error.split("\n")[0]}</div>}</td>
-                <td>{d.status === "processed" ? `${d.claimCount} / ${d.eventCount} ev.` : "–"}</td>
+                <td>{d.status === "processed" ? `${d.claimCount} / ${d.eventCount} ev.` : "–"}{d.checkCount > 0 && <div className="muted" style={{ fontSize: 11 }}>unchanged ×{d.checkCount}, last {fmtDate(d.lastCheckedAt)}</div>}</td>
                 {can(role, "admin") && <td><button className="btn btn-secondary" type="button" style={{ fontSize: 11 }} disabled={busy} onClick={() => reprocess(d.id)}>Re-run</button></td>}
               </tr>
             ))}
@@ -98,11 +98,11 @@ export default function Sources({ documents, competitors, markets }: { documents
 
         <div className="blueprint" style={{ padding: 18, display: "flex", flexDirection: "column", gap: 8 }}>
             <h5 style={{ margin: 0 }}>Connected data sources</h5>
-          <p className="muted" style={{ margin: 0, fontSize: 12 }}>Arriving in later phases. Each sync creates dated source blocks; nothing enters the tables without a quote.</p>
-          {[["Competitor websites", "Weekly crawl of product and pricing pages per market", "Phase 3"], ["News and RSS", "Newsrooms and trade media", "Phase 3"], ["Slack", "Dedicated competitor channel(s)", "Phase 4"], ["HubSpot", "Logged notes, emails, tickets mentioning a competitor", "Phase 4"], ["Aircall", "Call transcripts, competitor mentions only", "Phase 4"]].map(([n, d, p]) => (
+          <p className="muted" style={{ margin: 0, fontSize: 12 }}>Each fetch creates a dated source; nothing enters the tables without a quote. Pages and feeds are managed under Settings.</p>
+          {[["Competitor websites", "Product and pricing pages per market, checked daily, re-read when they change", "Live"], ["News and RSS", "Competitor newsrooms and trade-media feeds", "Live"], ["Slack", "Dedicated competitor channel(s)", "Phase 4"], ["HubSpot", "Logged notes, emails, tickets mentioning a competitor", "Phase 4"], ["Aircall", "Call transcripts, competitor mentions only", "Phase 4"]].map(([n, d, p]) => (
             <div key={n} style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "6px 0", borderBottom: "1px solid var(--color-divider)", fontSize: 13 }}>
               <div><div style={{ fontWeight: 500 }}>{n}</div><div className="muted" style={{ fontSize: 11 }}>{d}</div></div>
-              <span className="tag-idea">{p}</span>
+              <span className={p === "Live" ? "tag-pub" : "tag-idea"}>{p}</span>
             </div>
           ))}
           <p className="muted" style={{ margin: 0, fontSize: 11 }}>Trust tiers: {Object.entries(TIER_LABEL).map(([k, v]) => `${k} ${v}`).join(" · ")}</p>
