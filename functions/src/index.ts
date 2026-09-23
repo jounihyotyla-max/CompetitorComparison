@@ -85,13 +85,25 @@ export const autoResolveReviews = onCall({ timeoutSeconds: 300 }, async (req) =>
     for (const d of rest) { for (const id of d.data().claimIds ?? []) ids.add(id); await d.ref.delete(); folded++; }
     await keep.ref.update({ claimIds: [...ids] });
   }
-  // 2. Descriptive fields: newest source wins.
+  // 2. Descriptive fields: newest source wins. Lists: union of all sides.
   let n = 0;
   const stillOpen = await db.collection(COLLECTIONS.reviews).where("status", "==", "open").get();
   for (const d of stillOpen.docs) {
-    if (fields.get(String(d.data().fieldId)) !== "free_text") continue;
-    await d.ref.update({ status: "accepted", decidedBy: "rule: descriptive field, newest source wins", decidedAt: nowIso(), decision: "auto-resolved" });
-    n++;
+    const r = d.data();
+    const type = fields.get(String(r.fieldId));
+    if (type === "free_text") {
+      await d.ref.update({ status: "accepted", decidedBy: "rule: descriptive field, newest source wins", decidedAt: nowIso(), decision: "auto-resolved" });
+      n++;
+    } else if (type === "list") {
+      const ids = [r.currentClaimId, ...(r.claimIds ?? [])].filter(Boolean) as string[];
+      const items: string[] = [];
+      for (const id of ids) { const c = (await db.collection(COLLECTIONS.claims).doc(id).get()).data(); if (Array.isArray(c?.value)) items.push(...(c!.value as string[])); }
+      const seen = new Set<string>();
+      const union = items.filter((x) => (seen.has(x.toLowerCase()) ? false : (seen.add(x.toLowerCase()), true)));
+      if (union.length === 0) continue;
+      await d.ref.update({ status: "merged", mergedValue: union.join(", "), decidedBy: "rule: lists extend each other", decidedAt: nowIso(), decision: "auto-merged union" });
+      n++;
+    }
   }
   return { folded, resolved: n, remaining: stillOpen.size - n };
 });

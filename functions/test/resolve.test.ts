@@ -98,3 +98,15 @@ test("free-text at equal tier: newest statement replaces, no review; numbers sti
   const ncell = resolveClaim(n1, field, null, [n1], now, "rv3").cell;
   assert.equal(resolveClaim(n2, field, { cell: ncell, claim: n1 }, [n1, n2], now, "rv4").outcome, "conflict");
 });
+
+test("lists at equal tier take the union, no review", () => {
+  const list: FieldDefinition = { ...field, id: "livestock_species", type: "list", comparisonRule: "presence_is_better", perMarket: false };
+  const a = { ...claim("a", 1, 0), fieldId: "livestock_species", marketId: "GLOBAL" as const, value: ["cattle"], displayValue: "cattle", numeric: undefined };
+  const cell = resolveClaim(a, list, null, [a], now, "rv1").cell;
+  const b = { ...a, id: "b", documentId: "doc_b", value: ["cattle", "sheep"], displayValue: "cattle, sheep" };
+  const r = resolveClaim(b, list, { cell, claim: a }, [a, b], now, "rv2");
+  assert.equal(r.review, null);
+  assert.deepEqual(r.cell.value, ["cattle", "sheep"]);
+  assert.equal(r.cell.conflict, false);
+  assert.equal(r.cell.corroboration.agreeing, 2);
+});

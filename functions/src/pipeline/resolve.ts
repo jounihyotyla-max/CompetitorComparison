@@ -104,6 +104,25 @@ export function resolveClaim(
   // older one without a review. Facts with a right answer (numbers, prices, booleans, categories) still go to review.
   const descriptiveRefresh = field.type === "free_text" && cell.tier !== null && incoming.tier === cell.tier
     && incoming.lastCheckedAt >= (cell.lastCheckedAt ?? "");
+
+  // Lists at equal trust extend each other: "cattle" plus "cattle, sheep" is "cattle, sheep", not a conflict.
+  // The cell takes the union; both claims stay live and count as agreeing.
+  if (field.type === "list" && cell.tier !== null && incoming.tier === cell.tier && Array.isArray(incoming.value) && Array.isArray(claim.value)) {
+    const seen = new Set<string>();
+    const union = [...claim.value, ...incoming.value].filter((x) => (seen.has(norm(x)) ? false : (seen.add(norm(x)), true)));
+    const next = base({
+      claimId: union.length === incoming.value.length ? incoming.id : claim.id,
+      value: union, displayValue: union.join(", "),
+      corroboration: { count: liveClaims.length, agreeing: liveClaims.length, conflicting: 0 },
+      conflict: false,
+      firstSeenAt: cell.firstSeenAt ?? incoming.firstSeenAt,
+      lastChangedAt: union.length > (claim.value as string[]).length ? now : cell.lastChangedAt,
+      lastCheckedAt: later(cell.lastCheckedAt, incoming.lastCheckedAt),
+      confirmedBy: cell.confirmedBy, confirmedAt: cell.confirmedAt,
+    });
+    return { cell: next, supersede: [], review: null, outcome: "corroborated" };
+  }
+
   if (outranks(incoming.tier, cell.tier) || descriptiveRefresh) {
     const losing = liveClaims.filter((c) => c.id !== incoming.id && !valuesAgree(incoming, c)).map((c) => c.id);
     const agreeing = liveClaims.filter((c) => c.id !== incoming.id && valuesAgree(incoming, c));

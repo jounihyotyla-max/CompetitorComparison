@@ -54,8 +54,9 @@ export async function applyReview(review: Review, model: ModelClient) {
       conflict: disagreeing.length > 0, confirmedBy: who, confirmedAt: now, updatedAt: now,
     });
   } else if (review.status === "merged" && review.mergedValue) {
+    const items = review.mergedValue.split(/[,;]|\band\b/).map((x) => x.trim()).filter(Boolean);
     Object.assign(cell, {
-      value: review.mergedValue, displayValue: review.mergedValue, note: `merged by ${who}`,
+      value: field.type === "list" ? items : review.mergedValue, displayValue: field.type === "list" ? items.join(", ") : review.mergedValue, note: `merged by ${who}`,
       status: "stated", conflict: false, lastChangedAt: now, lastCheckedAt: now,
       confirmedBy: who, confirmedAt: now, outdated: false, numeric: undefined, updatedAt: now,
     });
