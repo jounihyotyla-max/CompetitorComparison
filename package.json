@@ -1,0 +1,22 @@
+{
+  "name": "competitor-comparison",
+  "private": true,
+  "version": "2.0.0",
+  "description": "Evidence-first competitor comparison for Nofence: sourced, masked, dated claims turned into comparison tables, battlecards and marketing snippets.",
+  "workspaces": [
+    "shared",
+    "functions",
+    "web"
+  ],
+  "scripts": {
+    "build": "npm run build -w shared && npm run build -w functions && npm run build -w web",
+    "test": "npm test -w shared && npm test -w functions",
+    "typecheck": "npm run typecheck -w shared && npm run typecheck -w functions && npm run typecheck -w web",
+    "seed": "npm run seed -w functions",
+    "dev:web": "npm run dev -w web",
+    "emulators": "firebase emulators:start --only firestore,functions,auth,storage"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

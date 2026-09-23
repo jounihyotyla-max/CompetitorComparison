@@ -1,0 +1,18 @@
+rules_version = '2';
+
+// Masked source snapshots live under snapshots/{documentId}.txt.
+// Only the pipeline (Admin SDK) writes them; signed-in @nofence.com users may read them
+// so the "Where does this come from?" popover can show the surrounding text.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /snapshots/{file} {
+      allow read: if request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email.matches('.*@nofence[.]com$');
+      allow write: if false;
+    }
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

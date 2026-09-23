@@ -1,0 +1,85 @@
+rules_version = '2';
+
+// Access model (docs/v2-architecture.md §2, §4):
+//   - only signed-in @nofence.com Google accounts get in at all
+//   - viewer: read everything the tables need
+//   - editor: add manual notes, decide reviews, confirm / outdate cells
+//   - admin:  competitors, fields, markets, settings, users
+// Functions use the Admin SDK and bypass these rules; everything the pipeline
+// writes (documents from connectors, claims, cells, verdicts, events) is
+// therefore read-only from the browser.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email.matches('.*@nofence[.]com$');
+    }
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+    function role() {
+      return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        ? userDoc().data.role : 'none';
+    }
+    function isViewer() { return role() in ['viewer', 'editor', 'admin']; }
+    function isEditor() { return role() in ['editor', 'admin']; }
+    function isAdmin()  { return role() == 'admin'; }
+    function onlyKeys(keys) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
+    }
+
+    // A user's own record is created on first sign-in (as viewer) and is otherwise admin-managed.
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.role == 'viewer'
+        && request.resource.data.email == request.auth.token.email;
+      allow update, delete: if isAdmin();
+    }
+
+    match /competitors/{id} { allow read: if isViewer(); allow write: if isAdmin(); }
+    match /fields/{id}      { allow read: if isViewer(); allow write: if isAdmin(); }
+    match /markets/{id}     { allow read: if isViewer(); allow write: if isAdmin(); }
+    match /settings/{id}    { allow read: if isViewer(); allow write: if isAdmin(); }
+
+    // Manual notes are the one document kind the browser may create. Everything else comes from connectors.
+    match /documents/{id} {
+      allow read: if isViewer();
+      allow create: if isEditor()
+        && request.resource.data.connector == 'manual'
+        && request.resource.data.status == 'new'
+        && request.resource.data.author == request.auth.token.email;
+      allow update, delete: if false;
+    }
+
+    match /claims/{id}   { allow read: if isViewer(); allow write: if false; }
+    match /verdicts/{id} { allow read: if isViewer(); allow write: if false; }
+    match /events/{id}   { allow read: if isViewer(); allow write: if false; }
+
+    // Editors may confirm a cell is still valid or mark it outdated; the pipeline owns every other field.
+    match /cells/{id} {
+      allow read: if isViewer();
+      allow update: if isEditor() && onlyKeys(['confirmedBy', 'confirmedAt', 'outdated', 'outdatedBy', 'outdatedAt']);
+      allow create, delete: if false;
+    }
+
+    // Reviews are opened by the pipeline and decided by editors.
+    match /reviews/{id} {
+      allow read: if isViewer();
+      allow update: if isEditor() && onlyKeys(['status', 'decidedBy', 'decidedAt', 'decision', 'mergedValue']);
+      allow create, delete: if false;
+    }
+
+    match /battlecards/{id} { allow read: if isViewer(); allow write: if false; }
+    match /snippets/{id}    { allow read: if isViewer(); allow write: if false; }
+
+    // Ask: a user sees their own questions; admins see all (to find data gaps).
+    match /questions/{id} {
+      allow read: if isViewer() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isViewer() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if false;
+    }
+  }
+}
