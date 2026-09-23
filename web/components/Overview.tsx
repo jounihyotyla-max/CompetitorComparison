@@ -9,6 +9,7 @@ const GROUPS: { id: FieldGroup; title: string; sub: string }[] = [
   { id: "overview", title: "Company overview", sub: "The basics, side by side" },
   { id: "features", title: "Key competitive features", sub: "Green is a real advantage, amber is partial or coming" },
   { id: "pricing", title: "Pricing", sub: "List prices as found, local currency; verdicts are from Nofence's point of view" },
+  { id: "hardware", title: "Hardware", sub: "Collar construction, connectivity, power and safety, from product team research and spec pages" },
   { id: "context", title: "Context", sub: "Positioning and proof points" },
 ];
 

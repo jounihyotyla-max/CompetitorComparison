@@ -78,7 +78,7 @@ export const ComparisonRule = z.enum([
   "lower_is_better", "higher_is_better", "presence_is_better", "qualitative_llm", "not_compared",
 ]);
 export type ComparisonRule = z.infer<typeof ComparisonRule>;
-export const FieldGroup = z.enum(["overview", "features", "pricing", "context"]);
+export const FieldGroup = z.enum(["overview", "features", "pricing", "hardware", "context"]);
 export type FieldGroup = z.infer<typeof FieldGroup>;
 /** Freshness decay presets in days; null never goes stale (founding year). */
 export const DecayDays = z.union([z.literal(30), z.literal(90), z.literal(180), z.literal(365), z.null()]);
@@ -313,6 +313,10 @@ export const Settings = z.object({
   digestSlackChannel: z.string().default(""),
   digestWeekday: z.number().int().min(0).max(6).default(1),
   crawlEveryDays: z.number().int().min(1).default(7),
+  /** Re-fetch interval per page kind, in days (news pages are re-read daily; feeds always daily). */
+  crawlDaysByKind: z.object({ pricing: z.number().int().min(1).default(7), product: z.number().int().min(1).default(14), news: z.number().int().min(1).default(1), about: z.number().int().min(1).default(30), other: z.number().int().min(1).default(14) }).default({ pricing: 7, product: 14, news: 1, about: 30, other: 14 }),
+  /** Slack: last message timestamp read per channel name, so each daily sync only reads what is new. */
+  slackCursors: z.record(z.string(), z.string()).default({}),
   /** Trade-media feeds not tied to one competitor; items are kept only when they mention a known competitor. */
   newsFeeds: z.array(z.url()).default([]),
   slackChannels: z.array(z.string()).default([]),

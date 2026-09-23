@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { doc, updateDoc } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
-import { COLLECTIONS, FEEDBACK_KIND_LABEL, Feedback, User, type Competitor, type DecayDays, type FieldDefinition, type Market, type Role, type SourceDocument } from "@cc/shared";
+import { COLLECTIONS, FEEDBACK_KIND_LABEL, Feedback, Settings, User, type Competitor, type DecayDays, type FieldDefinition, type Market, type Role, type SourceDocument } from "@cc/shared";
 import CompetitorsPanel from "./CompetitorsPanel";
 import { resetIntros } from "./Intro";
 import { can, useAuth } from "@/lib/auth";
@@ -18,6 +18,9 @@ export default function SettingsPanel({ fields, competitors, documents, markets 
   const admin = can(role, "admin");
   const users = useCollection(COLLECTIONS.users, User, [], admin);
   const feedback = useCollection(COLLECTIONS.feedback, Feedback, [], admin);
+  const settings = useCollection(COLLECTIONS.settings, Settings, [], admin).docs[0];
+  const [channels, setChannels] = useState<string | null>(null);
+  const [digestPreview, setDigestPreview] = useState("");
   const [copied, setCopied] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
@@ -51,6 +54,33 @@ export default function SettingsPanel({ fields, competitors, documents, markets 
       </div>
 
       <CompetitorsPanel competitors={competitors} markets={markets} />
+
+      <div className="blueprint tablebox" data-group="pricing">
+        <div className="section-head"><h5>Sources: Slack and crawl schedule</h5><span className="muted">Slack is read daily at 06:30 Oslo; pages on the interval per kind; the digest posts Monday 07:00</span></div>
+        <div style={{ padding: "14px 20px", display: "flex", flexDirection: "column", gap: 12, fontSize: 13 }}>
+          <label className="lbl">Slack channels to read (comma separated; invite the bot to each)
+            <input className="inp" value={channels ?? (settings?.slackChannels ?? []).join(", ")} onChange={(e) => setChannels(e.target.value)}
+              onBlur={() => { if (channels !== null) run(() => updateDoc(doc(db, COLLECTIONS.settings, "global"), { slackChannels: channels.split(",").map((x) => x.trim().replace(/^#/, "")).filter(Boolean), updatedAt: new Date().toISOString() }), "Channels saved."); }} />
+          </label>
+          <div style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap" }}>
+            <label className="lbl" style={{ width: 240 }}>Digest channel
+              <input className="inp" defaultValue={settings?.digestSlackChannel ?? ""} onBlur={(e) => { const v = e.target.value.trim().replace(/^#/, ""); if (v !== (settings?.digestSlackChannel ?? "")) run(() => updateDoc(doc(db, COLLECTIONS.settings, "global"), { digestSlackChannel: v, updatedAt: new Date().toISOString() }), "Digest channel saved."); }} />
+            </label>
+            {(["pricing", "product", "news", "about", "other"] as const).map((k) => (
+              <label key={k} className="lbl" style={{ width: 90 }}>{k} pages, days
+                <input className="inp" type="number" min={1} defaultValue={settings?.crawlDaysByKind?.[k] ?? 7}
+                  onBlur={(e) => { const n = Math.max(1, Number(e.target.value) || 1); if (n !== settings?.crawlDaysByKind?.[k]) run(() => updateDoc(doc(db, COLLECTIONS.settings, "global"), { [`crawlDaysByKind.${k}`]: n, updatedAt: new Date().toISOString() }), `${k} pages: every ${n} days.`); }} />
+              </label>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button className="btn" type="button" disabled={busy} onClick={() => run(async () => { const r = await httpsCallable<unknown, { channelsRead: number; messagesSeen: number; documentsCreated: number; notes: string[] }>(functions, "slackSyncNow")({}); setMsg(`Slack: read ${r.data.channelsRead} channel${r.data.channelsRead === 1 ? "" : "s"}, ${r.data.messagesSeen} messages, ${r.data.documentsCreated} new source${r.data.documentsCreated === 1 ? "" : "s"}.${r.data.notes.length ? " " + r.data.notes.join(" · ") : ""}`); }, "")}>Sync Slack now</button>
+            <button className="btn" type="button" disabled={busy} onClick={() => run(async () => { const r = await httpsCallable<unknown, { text: string }>(functions, "digestNow")({}); setDigestPreview(r.data.text); }, "Digest preview below.")}>Preview digest</button>
+            <button className="btn" type="button" disabled={busy} onClick={() => run(async () => { const r = await httpsCallable<unknown, { channel: string }>(functions, "digestNow")({ post: true }); setMsg(`Digest posted to #${r.data.channel}.`); }, "")}>Post digest now</button>
+          </div>
+          {digestPreview && <pre className="quote-box" style={{ whiteSpace: "pre-wrap", margin: 0 }}>{digestPreview}</pre>}
+        </div>
+      </div>
 
       <div className="blueprint tablebox" data-group="features">
         <div className="section-head"><h5>Fields and freshness</h5><span className="muted" style={{ fontSize: 12 }}>How long a value stays trusted before it is flagged stale</span></div>

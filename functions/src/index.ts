@@ -14,10 +14,13 @@ import { answer } from "./pipeline/ask.ts";
 import { seedAll } from "./seed/seed.ts";
 import { runCrawl } from "./connectors/crawl.ts";
 import { discoverPages } from "./connectors/discover.ts";
+import { syncSlack } from "./connectors/slack.ts";
+import { buildDigest, postDigest } from "./pipeline/digest.ts";
 
 setGlobalOptions({ region: "europe-west1", maxInstances: 10 });
 
 const ANTHROPIC_API_KEY = defineSecret("ANTHROPIC_API_KEY");
+const SLACK_BOT_TOKEN = defineSecret("SLACK_BOT_TOKEN");
 const CLAUDE_MODEL = defineString("CLAUDE_MODEL", { default: DEFAULT_MODEL });
 /** Comma-separated emails that become admins on first sign-in; everyone else starts as viewer. */
 const ADMIN_EMAILS = defineString("ADMIN_EMAILS", { default: "jouni.hyotyla@nofence.com" });
@@ -127,13 +130,45 @@ export const ask = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 180 },
   return answer(req.auth!.uid, question, model());
 });
 
+/** Daily at 06:30 Oslo: read the configured Slack channels since the last cursor; competitor mentions become tier-4 sources. */
+export const slackScheduled = onSchedule(
+  { schedule: "every day 06:30", timeZone: "Europe/Oslo", timeoutSeconds: 900, secrets: [SLACK_BOT_TOKEN] },
+  async () => { await syncSlack(SLACK_BOT_TOKEN.value()); },
+);
+
+/** Admin: sync Slack now. `force` re-reads the last 30 days (duplicates are skipped). */
+export const slackSyncNow = onCall({ timeoutSeconds: 900, secrets: [SLACK_BOT_TOKEN] }, async (req) => {
+  await requireRole(req.auth?.uid, ["admin"]);
+  return syncSlack(SLACK_BOT_TOKEN.value(), { force: req.data?.force === true });
+});
+
+/** Monday 07:00 Oslo: the weekly digest to the configured channel. */
+export const digestWeekly = onSchedule(
+  { schedule: "every monday 07:00", timeZone: "Europe/Oslo", timeoutSeconds: 300, secrets: [SLACK_BOT_TOKEN] },
+  async () => {
+    const settings = (await db.collection(COLLECTIONS.settings).doc("global").get()).data();
+    const channel = String(settings?.digestSlackChannel ?? "");
+    if (!channel) { console.log("[digest] no channel configured"); return; }
+    await postDigest(SLACK_BOT_TOKEN.value(), channel);
+  },
+);
+
+/** Admin: preview the digest text, or post it now (`post: true`). */
+export const digestNow = onCall({ timeoutSeconds: 300, secrets: [SLACK_BOT_TOKEN] }, async (req) => {
+  await requireRole(req.auth?.uid, ["admin"]);
+  if (req.data?.post === true) {
+    const settings = (await db.collection(COLLECTIONS.settings).doc("global").get()).data();
+    const channel = String(req.data?.channel ?? settings?.digestSlackChannel ?? "");
+    if (!channel) throw new HttpsError("failed-precondition", "no digest channel configured");
+    return { posted: true, channel, text: await postDigest(SLACK_BOT_TOKEN.value(), channel) };
+  }
+  return { posted: false, text: (await buildDigest()).text };
+});
+
 /** Daily at 06:00 Oslo time: re-fetch competitor pages older than the crawl interval, and all feeds. */
 export const crawlScheduled = onSchedule(
   { schedule: "every day 06:00", timeZone: "Europe/Oslo", timeoutSeconds: 1800, memory: "1GiB" },
-  async () => {
-    const settings = (await db.collection(COLLECTIONS.settings).doc("global").get()).data();
-    await runCrawl({ everyDays: Number(settings?.crawlEveryDays ?? 7) });
-  },
+  async () => { await runCrawl(); },
 );
 
 /** Admin: scan a competitor's website for pricing, product, news and regional pages plus feeds, to pick from. */

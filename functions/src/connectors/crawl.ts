@@ -5,7 +5,7 @@
  * is unchanged since the last snapshot is not re-extracted: its existing claims and cells only get a fresh
  * lastCheckedAt (that is what "checked, not changed" means in docs/v2-architecture.md §6).
  */
-import { COLLECTIONS, Competitor, DEFAULT_TIER, SourceDocument, type CrawlPage, type MarketId, type Tier } from "@cc/shared";
+import { COLLECTIONS, Competitor, DEFAULT_TIER, Settings, SourceDocument, type CrawlPage, type MarketId, type Tier } from "@cc/shared";
 import { clean, db, nowIso } from "../lib/admin.ts";
 import { matchCompetitors } from "../pipeline/match.ts";
 import { touchDocument } from "../pipeline/run.ts";
@@ -89,25 +89,28 @@ async function crawlFeed(c: Competitor | null, url: string, competitors: Competi
  * Crawl every active competitor's pages and feeds (or one competitor's). `force` ignores the crawl interval;
  * the scheduled run passes the interval from settings so pages are re-fetched at most once per period.
  */
-export async function runCrawl(opts: { competitorId?: string; force?: boolean; everyDays?: number } = {}): Promise<CrawlReport> {
+export async function runCrawl(opts: { competitorId?: string; force?: boolean } = {}): Promise<CrawlReport> {
   const rep: CrawlReport = { pagesChecked: 0, pagesChanged: 0, pagesFailed: 0, feedsChecked: 0, newItems: 0, notes: [] };
   const snap = await db.collection(COLLECTIONS.competitors).get();
   const competitors = snap.docs.flatMap((d) => { const r = Competitor.safeParse(d.data()); return r.success ? [r.data] : []; });
+  // Drafts are watched too (cheap, and they fill in quietly), archived ones are not.
   const targets = competitors.filter((c) => c.status !== "archived" && (!opts.competitorId || c.id === opts.competitorId));
-  const cutoff = opts.force || !opts.everyDays ? null : new Date(Date.now() - opts.everyDays * 86_400_000).toISOString();
+  const settings = Settings.parse({ id: "global", updatedAt: nowIso(), ...(await db.collection(COLLECTIONS.settings).doc("global").get()).data() });
+  const days = settings.crawlDaysByKind;
   for (const c of targets) {
     for (const p of c.crawlPages) {
-      if (cutoff) {
+      if (!opts.force) {
+        const every = days[p.kind] ?? settings.crawlEveryDays;
+        const cutoff = new Date(Date.now() - every * 86_400_000).toISOString();
         const prev = await latestDoc("web", p.url);
         const last = prev?.lastCheckedAt ?? prev?.capturedAt;
-        if (last && last > cutoff) { log(c.id, p.url, "checked recently, skipping"); continue; }
+        if (last && last > cutoff) { log(c.id, p.url, `checked within ${every} days, skipping`); continue; }
       }
       await crawlPage(c, p, rep);
     }
     for (const f of c.feeds) await crawlFeed(c, f, competitors, rep);
   }
-  const settings = (await db.collection(COLLECTIONS.settings).doc("global").get()).data();
-  for (const f of (settings?.newsFeeds as string[] | undefined) ?? []) await crawlFeed(null, f, competitors, rep);
+  for (const f of settings.newsFeeds) await crawlFeed(null, f, competitors, rep);
   log("done", JSON.stringify(rep));
   return rep;
 }

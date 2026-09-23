@@ -99,7 +99,7 @@ export default function Sources({ documents, competitors, markets }: { documents
         <div className="blueprint" style={{ padding: 18, display: "flex", flexDirection: "column", gap: 8 }}>
             <h5 style={{ margin: 0 }}>Connected data sources</h5>
           <p className="muted" style={{ margin: 0, fontSize: 12 }}>Each fetch creates a dated source; nothing enters the tables without a quote. Pages and feeds are managed under Settings.</p>
-          {[["Competitor websites", "Product and pricing pages per market, checked daily, re-read when they change", "Live"], ["News and RSS", "Competitor newsrooms and trade-media feeds", "Live"], ["Slack", "Dedicated competitor channel(s)", "Phase 4"], ["HubSpot", "Logged notes, emails, tickets mentioning a competitor", "Phase 4"], ["Aircall", "Call transcripts, competitor mentions only", "Phase 4"]].map(([n, d, p]) => (
+          {[["Competitor websites", "Product and pricing pages per market, checked daily, re-read when they change", "Live"], ["News and RSS", "Competitor newsrooms and trade-media feeds", "Live"], ["Slack", "Six channels, read daily; competitor mentions only", "Live"], ["HubSpot", "Logged notes, emails, tickets mentioning a competitor", "Phase 4"], ["Aircall", "Call transcripts, competitor mentions only", "Phase 4"]].map(([n, d, p]) => (
             <div key={n} style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "6px 0", borderBottom: "1px solid var(--color-divider)", fontSize: 13 }}>
               <div><div style={{ fontWeight: 500 }}>{n}</div><div className="muted" style={{ fontSize: 11 }}>{d}</div></div>
               <span className={p === "Live" ? "tag-pub" : "tag-idea"}>{p}</span>

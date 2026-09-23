@@ -3,6 +3,7 @@ import { COLLECTIONS, Competitor, FieldDefinition, Market, Settings, SourceDocum
 import { COMPETITORS, FIELDS, MARKETS, MATRIX_PAGES, SETTINGS } from "./registry.ts";
 import { SEED_NOTES } from "./notes.ts";
 import { MATRIX_MODIFIED_AT, matrixNotes } from "./matrix.ts";
+import { BOARD_DATE, boardNotes } from "./board.ts";
 
 /**
  * Idempotent: registry documents are merged (an admin's later edits to description / decay survive a re-seed
@@ -51,7 +52,9 @@ export async function seedAll(db: Firestore, opts: { withNotes: boolean; author:
 
   let newNotes = 0;
   if (opts.withNotes) {
-    for (const n of [...SEED_NOTES, ...matrixNotes(MATRIX_MODIFIED_AT)]) {
+    const known = new Set((await db.collection(COLLECTIONS.competitors).get()).docs.map((d) => d.id));
+    const board = BOARD_DATE ? boardNotes(BOARD_DATE).filter((n) => n.competitorIds.every((c) => known.has(c))) : [];
+    for (const n of [...SEED_NOTES, ...matrixNotes(MATRIX_MODIFIED_AT), ...board]) {
       const ref = db.collection(COLLECTIONS.documents).doc(n.id);
       if ((await ref.get()).exists) continue;
       await ref.set(SourceDocument.parse(n));

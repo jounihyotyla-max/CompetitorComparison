@@ -86,7 +86,8 @@ textarea.inp { resize: vertical; line-height: 1.5; background: color-mix(in srgb
 .tablebox[data-group="overview"] .section-head { background: var(--head-1); }
 .tablebox[data-group="features"] .section-head { background: var(--head-2); }
 .tablebox[data-group="pricing"] .section-head { background: var(--head-3); }
-.tablebox[data-group="context"] .section-head { background: var(--head-4); }
+.tablebox[data-group="hardware"] .section-head { background: var(--head-4); }
+.tablebox[data-group="context"] .section-head { background: #58a07c; }
 .section-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; padding: 18px 20px 14px; color: var(--head-text); }
 .section-head h5 { color: inherit; }
 .section-head .muted { color: var(--head-sub); font-size: 13px; }
