@@ -4,6 +4,7 @@ import { doc, updateDoc } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { COLLECTIONS, User, type Competitor, type DecayDays, type FieldDefinition, type Market, type Role, type SourceDocument } from "@cc/shared";
 import CompetitorsPanel from "./CompetitorsPanel";
+import { resetIntros } from "./Intro";
 import { can, useAuth } from "@/lib/auth";
 import { db, functions } from "@/lib/firebase";
 import { useCollection } from "@/lib/data";
@@ -92,6 +93,9 @@ export default function SettingsPanel({ fields, competitors, documents, markets 
           </tbody>
         </table></div>
       </div>
+      <p className="muted" style={{ margin: 0, fontSize: 12 }}>
+        <a href="#" onClick={(e) => { e.preventDefault(); resetIntros(); setMsg("The introduction boxes will show again on each tab."); }}>Show the introduction boxes again</a>
+      </p>
     </div>
   );
 }

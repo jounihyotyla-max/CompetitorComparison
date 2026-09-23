@@ -4,6 +4,7 @@ import {
   COLLECTIONS, Cell, Competitor, FieldDefinition, Market, Review as ReviewT, SourceDocument, Verdict, cellId,
 } from "@cc/shared";
 import CellPopover from "@/components/CellPopover";
+import Intro from "@/components/Intro";
 import Battlecards from "@/components/Battlecards";
 import Overview, { type Sel } from "@/components/Overview";
 import Review from "@/components/Review";
@@ -95,6 +96,7 @@ function Workspace() {
 
       <main className="ws-main">
         {anyError && <p className="bad" style={{ fontSize: 13 }}>{anyError}</p>}
+        <Intro tab={tab} />
         {tab === "overview" && (
           fields.loading || cells.loading ? <p className="muted">Loading…</p> :
           <Overview fields={fields.docs} competitors={competitors.docs} markets={markets.docs} cells={cells.docs} verdicts={verdicts.docs} group={group} selected={selected} onSelect={setSelected} />
