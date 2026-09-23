@@ -3,7 +3,7 @@
  * Fields merge v1's presets with the agtech-livestock set from the brainstorm doc and the rows the mockup shows.
  * All of this is admin-editable in the tool afterwards; this is only the starting point.
  */
-import type { Competitor, FieldDefinition, Market, Settings } from "@cc/shared";
+import type { Competitor, CrawlPage, FieldDefinition, Market, MarketId, Settings } from "@cc/shared";
 
 export const MARKETS: Market[] = [
   { id: "GLOBAL", label: "All markets", group: "All", currencies: [], languages: [], order: 0 },
@@ -59,6 +59,25 @@ export const FIELDS: FieldDefinition[] = [
       description: "Heat, rumination, calving or illness detection from collar data. live / partial (e.g. activity anomalies only) / in development / none." },
     { id: "pulse_calibration", label: "Per-animal pulse calibration", type: "boolean", comparisonRule: "presence_is_better", decayDays: 365,
       description: "Yes if the correction pulse is calibrated per animal or adapts to the animal's behaviour." },
+    // Product team feature matrix (Sep 2026). Same four-level scale as scheduled_moves.
+    { id: "proven_containment", label: "Proven containment", type: "categorical", comparisonRule: "qualitative_llm", allowedValues: ["live", "partial", "in development", "none"], decayDays: 365,
+      description: "live = a published, ideally peer-reviewed, containment rate exists; partial = field trials or vendor claims only, or durability caveats; in development = product not yet shipping; none = no evidence. Quote the rate when stated." },
+    { id: "anomaly_detection", label: "Anomaly detection", type: "categorical", comparisonRule: "qualitative_llm", allowedValues: ["live", "partial", "in development", "none"], decayDays: 180,
+      description: "Alerts on abnormal behaviour (illness, injury, stillness, stress) from collar data. live = behavioural models with several alert types; partial = a single stillness or escape alert; in development; none." },
+    { id: "heat_detection", label: "Heat detection", type: "categorical", comparisonRule: "qualitative_llm", allowedValues: ["live", "partial", "in development", "none"], decayDays: 180,
+      description: "Oestrus / heat detection from the collar. live = shipping to customers; partial = via a separate product; in development = announced with a date; none." },
+    { id: "calving_detection", label: "Calving detection", type: "categorical", comparisonRule: "qualitative_llm", allowedValues: ["live", "partial", "in development", "none"], decayDays: 180,
+      description: "Predictive calving alerts. live = predictive alarm in the app; partial = calving workflow or post-calving alerts only, or needs an auxiliary device; in development = announced; none." },
+    { id: "automated_moves", label: "Automated moves", type: "categorical", comparisonRule: "qualitative_llm", allowedValues: ["live", "partial", "in development", "none"], decayDays: 180,
+      description: "The system shifts the herd between paddocks by itself on a plan (beyond a farmer scheduling one move). live / partial / in development / none." },
+    { id: "grazing_reporting", label: "Grazing reporting", type: "categorical", comparisonRule: "qualitative_llm", allowedValues: ["live", "partial", "in development", "none"], decayDays: 180,
+      description: "Pasture and grazing analytics: biomass or kgDM allocation, utilisation, residuals. live = quantitative pasture metrics in-app; partial = heat maps or time-in-paddock only; in development; none." },
+    { id: "satellite_offering", label: "Satellite offering", type: "categorical", comparisonRule: "qualitative_llm", allowedValues: ["live", "partial", "in development", "none"], decayDays: 180,
+      description: "Collars that work via satellite without cellular coverage or a base station. live = shipping; partial = limited markets; in development = announced or rumoured with a source; none = cellular or LoRa only." },
+    { id: "calf_solution", label: "Solution for calves", type: "categorical", comparisonRule: "qualitative_llm", allowedValues: ["live", "partial", "in development", "none"], decayDays: 365,
+      description: "A collar or approach for calves / young stock. live = calf-specific SKU; partial = adult collar marketed for young stock, or mother-follow design; in development; none = adult sizes only." },
+    { id: "exclusion_zones", label: "Exclusion zones", type: "categorical", comparisonRule: "qualitative_llm", allowedValues: ["live", "partial", "in development", "none"], decayDays: 365,
+      description: "Can the farmer draw areas the animals must stay out of (water, roads, crops) inside a grazing area? live / partial / in development / none." },
     { id: "known_weak_spots", label: "Known weak spots", type: "free_text", comparisonRule: "not_compared", decayDays: 180,
       description: "Reported problems: GPS errors, unintended pulses, hardware faults, support issues, cost complaints. Say who reports it if the source does." },
   ]),
@@ -130,7 +149,72 @@ export const COMPETITORS: Competitor[] = [
     ],
     feeds: [], createdAt: ts, updatedAt: ts,
   },
+  {
+    id: "vence", name: "Vence", aliases: ["Vence (Merck)", "Merck Animal Health Vence", "HerdManager", "vence.io"], website: "https://www.merck-animal-health-usa.com/species/cattle/vence", hqCountry: "United States",
+    isSelf: false, status: "active", markets: ["US"], crawlPages: [], feeds: [], createdAt: ts, updatedAt: ts,
+  },
+  {
+    id: "gallagher", name: "Gallagher", aliases: ["Gallagher eShepherd", "eShepherd", "eshepherd.com"], website: "https://eshepherd.com", hqCountry: "New Zealand",
+    isSelf: false, status: "active", markets: ["IE", "ES", "US"], crawlPages: [], feeds: [], createdAt: ts, updatedAt: ts,
+  },
+  {
+    id: "innogando", name: "Innogando", aliases: ["RUMI", "Rumi Pro", "innogando.com"], website: "https://innogando.com", hqCountry: "Spain",
+    isSelf: false, status: "active", markets: ["ES"], crawlPages: [], feeds: [], createdAt: ts, updatedAt: ts,
+  },
 ];
+
+// Source URLs behind the product team's feature matrix (Sep 2026): official pages are watched as tier 1,
+// press, studies and partner pages as tier 2 (crawl.ts decides by host).
+const matrixPages = (pages: [string, CrawlPage["kind"], MarketId?][]): CrawlPage[] =>
+  pages.map(([url, kind, marketId]) => ({ url, label: "from product team matrix", marketId: marketId ?? "GLOBAL", kind }));
+
+export const MATRIX_PAGES: Record<string, CrawlPage[]> = {
+  nofence: matrixPages([
+    ["https://www.sciencedirect.com/science/article/pii/S2772375524003174", "news"], ["https://pmc.ncbi.nlm.nih.gov/articles/PMC9951726/", "news"],
+    ["https://www.nofence.com/what-is-nofence/features/", "product"], ["https://www.nofence.com/community/news/articles/coming-soon-heat-detection-for-your-2-5-collars/", "news"],
+    ["https://www.nofence.com/grazing-patterns/rotational-grazing/", "product"], ["https://www.nofence.com/grazing-patterns/solar-grazing/", "product"],
+    ["https://www.nofence.com/knowledge-hub/articles/cell-service/", "product"], ["https://www.nofence.com/what-is-nofence/cellular-network/?lang=en-us", "product", "US"],
+    ["https://www.nofence.no/en-gb/faq", "product", "UK"],
+  ]),
+  monil: matrixPages([
+    ["https://www.monil.com/uk/blogs/using-monil-for-research", "news", "UK"], ["https://www.monil.com/us/products/collar", "product", "US"],
+    ["https://agronews.com/us/en/news/kaleidoscope/2026-05-28/93358", "news", "US"], ["https://www.beefmagazine.com/livestock-management/monil-raises-10m-to-enter-u-s-virtual-fencing-market", "news", "US"],
+    ["https://www.monil.com/us/blogs/monil-2025", "news", "US"], ["https://www.nordicsemi.com/Nordic-news/2024/11/Monil-Collar-employs-nRF9160-SiP-and-nRF52833-SoC", "news"],
+    ["https://www.monil.com/us/support/cellular-connectivity", "product", "US"],
+  ]),
+  halter: matrixPages([
+    ["https://www.journalofdairyscience.org/article/S0022-0302(24)00761-6/fulltext", "news"], ["https://www.sciencedirect.com/science/article/pii/S1751731126000649", "news"],
+    ["https://www.halterhq.com/animal-welfare-charter/animal-health-benefits", "product"], ["https://www.halterhq.com/dairy/improve-mating-results", "product"],
+    ["https://www.halterhq.com/en-us/mating", "product", "US"], ["https://www.halterhq.com/dairy/reduce-farm-workload", "product"],
+    ["https://www.halterhq.com/pasture-management", "product"], ["https://www.halterhq.com/articles/pasture-management-and-farm-performance", "news"],
+    ["https://www.businesswire.com/news/home/20260428409328/en/Halter-Launches-World-First-Virtual-Fencing-via-Satellite-Unlocking-Ranch-Management-Anywhere", "news"],
+    ["https://www.halterhq.com/en-us/our-technology", "product", "US"], ["https://www.halterhq.com/articles/a-closer-look-at-the-halter-collar", "product"],
+  ]),
+  vence: matrixPages([
+    ["https://openprairie.sdstate.edu/cgi/viewcontent.cgi?article=1594&context=etd2", "news", "US"], ["https://pmc.ncbi.nlm.nih.gov/articles/PMC11088281/", "news", "US"],
+    ["https://www.merck-animal-health-usa.com/hub/vence/", "product", "US"], ["https://ambiq.com/blog/virtual-fencing-is-on-the-mooove/", "news", "US"],
+    ["https://www.merck-animal-health-usa.com/species/cattle/vence", "product", "US"], ["https://calfnews.net/featured/artificial-intelligence-virtual-fences/", "news", "US"],
+    ["https://www.billpelton.com/virtual-fences-two-producers-share-their-experiences/", "news", "US"], ["https://tutorial.vence.io/", "product", "US"],
+    ["https://www.merck-animal-health-usa.com/species/cattle/vence/how-it-works", "product", "US"], ["https://onland.westernlandowners.org/2023/steward-tips/the-invisible-fenceline/", "news", "US"],
+    ["https://www.exterrajsc.com/p/satellite-connected-virtual-fencing", "news", "US"], ["https://decode6.org/wp-content/uploads/2023/09/Shadbolt-Lawrence-Virtual-Fence_Decode-6-Podcast.pdf", "news", "US"],
+  ]),
+  gallagher: matrixPages([
+    ["https://www.publish.csiro.au/an/fulltext/an20525", "news"], ["https://www.barrierreef.org/uploads/2023-03-14-eShepherd-Final-Report.pdf", "news"],
+    ["https://eshepherd.com/faq/", "product"], ["https://landing.eshepherd.com/features/alerts/", "product"],
+    ["https://www.parliament.nsw.gov.au/ladocs/submissions/85914/Submission%2042%20-%20Gallagher%20eShepherd%20Pty%20Ltd.pdf", "news"],
+    ["https://am.gallagher.com/en/knowledge-hub/articles/news/eshepherd-new-features", "news"],
+    ["https://am.gallagher.com/en-CA/Knowledge-Hub/Articles/Customer-Stories/Precision-Grazing-with-eShepherd-in-Albertas-Drylands", "news"],
+    ["https://www.nzherald.co.nz/business/companies/agribusiness/gallaghers-eshepherd-challenges-halter-in-global-virtual-cattle-fencing-race/premium/MQBQBZQ7CNC7LG5SNX7AKS7A4Q/", "news"],
+    ["https://eshepherd.com/neckband/", "product"],
+  ]),
+  innogando: matrixPages([
+    ["https://www.campogalego.es/rumi-pro-el-dispositivo-inteligente-que-incorpora-vallado-virtual-para-transformar-la-gestion-ganadera/", "news", "ES"],
+    ["https://innogando.com/en/smart-collars-for-cows/", "product", "ES"], ["https://innogando.com/en/rumi-app/", "product", "ES"],
+    ["https://innogando.com/2026/03/05/rumi-de-innogando-tecnologia-inteligente-para-la-deteccion-del-celo-en-vacas-y-optimizacion-de-la-inseminacion-artificial/", "news", "ES"],
+    ["https://www.campogalego.es/llega-rumi-el-dispositivo-gps-para-monitorizar-en-tiempo-real-vacas-y-novillas-tanto-en-el-establo-como-en-la-pradera/", "news", "ES"],
+    ["https://www.campogalego.es/rumi-una-solucion-por-solo-40-euros-para-tener-la-recria-siempre-controlada/", "news", "ES"],
+  ]),
+};
 
 export const SETTINGS: Settings = {
   id: "global",

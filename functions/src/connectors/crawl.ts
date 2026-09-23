@@ -5,7 +5,7 @@
  * is unchanged since the last snapshot is not re-extracted: its existing claims and cells only get a fresh
  * lastCheckedAt (that is what "checked, not changed" means in docs/v2-architecture.md §6).
  */
-import { COLLECTIONS, Competitor, DEFAULT_TIER, SourceDocument, type CrawlPage, type MarketId } from "@cc/shared";
+import { COLLECTIONS, Competitor, DEFAULT_TIER, SourceDocument, type CrawlPage, type MarketId, type Tier } from "@cc/shared";
 import { clean, db, nowIso } from "../lib/admin.ts";
 import { matchCompetitors } from "../pipeline/match.ts";
 import { touchDocument } from "../pipeline/run.ts";
@@ -15,6 +15,14 @@ import { parseFeed } from "./rss.ts";
 
 const log = (...a: unknown[]) => console.log("[crawl]", ...a);
 const MIN_TEXT = 200; // shorter than this and the fetch almost certainly hit a bot wall or an empty shell
+
+const host = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return ""; } };
+/** A page on the competitor's own site is official (tier 1); press, studies, partners and marketplaces are tier 2. */
+export function tierFor(c: Competitor, url: string): Tier {
+  const own = [c.website ?? "", ...c.aliases.filter((a) => a.includes("."))].map(host).filter(Boolean);
+  const h = host(url);
+  return own.some((o) => h === o || h.endsWith(`.${o}`) || o.endsWith(`.${h}`)) ? DEFAULT_TIER.web : DEFAULT_TIER.rss;
+}
 
 export interface CrawlReport { pagesChecked: number; pagesChanged: number; pagesFailed: number; feedsChecked: number; newItems: number; notes: string[] }
 
@@ -42,7 +50,7 @@ async function crawlPage(c: Competitor, p: CrawlPage, rep: CrawlReport) {
   rep.pagesChanged++;
   const doc: Omit<SourceDocument, "id"> = {
     connector: "web", externalId: p.url, externalUrl: res.finalUrl, title: title ? `${c.name}: ${title}` : `${c.name} — ${p.label || p.kind}`,
-    author: "", capturedAt: now, competitorIds: [c.id], marketId: p.marketId, tier: DEFAULT_TIER.web, relevance: 1, status: "new",
+    author: "", capturedAt: now, competitorIds: [c.id], marketId: p.marketId, tier: tierFor(c, p.url), relevance: 1, status: "new",
     snapshotPath: "", text, contentHash: hash, charCount: text.length, claimCount: 0, eventCount: 0, checkCount: 0,
   };
   const ref = await db.collection(COLLECTIONS.documents).add(clean(SourceDocument.omit({ id: true }).parse(doc)));
