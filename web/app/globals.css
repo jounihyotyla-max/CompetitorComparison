@@ -2,39 +2,40 @@
 
 /* ─────────────────────────────────────────────────────────────────────────────
    Design tokens: the Competitor Comparison Table mockup (Main.dc.html) with the
-   "Option B · Field" colour treatment chosen on 23 Sep 2026 — warm grey content
-   area, white cards, solid green section heads stepping lighter down the page.
-   Light only, by decision.
+   "Option B · Field" structure chosen on 23 Sep 2026 — cards on a darker page,
+   solid green section heads stepping lighter down the page — in its dark form.
+   Dark only, by decision (no toggle).
    ───────────────────────────────────────────────────────────────────────────── */
 :root {
   --font: var(--font-plex), "IBM Plex Sans", system-ui, sans-serif;
-  --bg: #f6f6f2;            /* page + header */
-  --content: #e6e9e3;       /* content area behind the cards */
-  --card: #ffffff;
-  --card-border: #d3d9d1;
-  --line: #eef0eb;          /* row dividers */
-  --text: #171d19;
-  --text-2: #3f4844;
-  --muted: #6a736d;
-  --faint: #a3aaa5;
-  --green: #2b6a4c;
-  --green-dark: #1f523a;
-  --green-tint: #e4efe7;
-  --green-wash: #f4f9f6;
-  --th-bg: #fafaf7;
+  --bg: #12181a;            /* page + header */
+  --content: #0c1113;       /* content area behind the cards */
+  --card: #1a2124;
+  --card-border: #2b3438;
+  --line: #242d31;          /* row dividers */
+  --text: #e6ebe8;
+  --text-2: #b9c3be;
+  --muted: #8a968f;
+  --faint: #5f6b65;
+  --green: #3f8a63;
+  --green-dark: #5fa882;
+  --green-tint: #1d3a2b;
+  --green-wash: #172b21;
+  --th-bg: #1f272b;
   --head-1: #1f523a; --head-2: #2b6a4c; --head-3: #3a7d5c; --head-4: #4a8f6c;
   --head-text: #ffffff;
   --head-sub: #cfe6d8;
-  --legend: #4e5a53;
-  --ok-bg: #e3f3e9; --ok: #1a6b41;
-  --bad-bg: #f8e5e1; --bad: #9a2f22;
-  --warn-bg: #fdf3d8; --warn: #8a6414;
-  --none-bg: #f0f2ee; --none: #a3aaa5;
-  --pub-bg: #e6e9f5; --pub: #2f3f7a;
-  --int-bg: #fdf3d8; --int: #7a5a12;
-  --shadow: 0 12px 32px rgba(23, 29, 25, .14);
+  --legend: #8a968f;
+  --ok-bg: #1b3a2a; --ok: #7fcf9a;
+  --bad-bg: #40221e; --bad: #f28b82;
+  --warn-bg: #3d3013; --warn: #f0b35a;
+  --none-bg: #242d31; --none: #6f7b75;
+  --pub-bg: #262d45; --pub: #b7c2ee;
+  --int-bg: #3d3013; --int: #f0d08a;
+  --shadow: 0 12px 32px rgba(0, 0, 0, .55);
 }
 
+html { color-scheme: dark; }
 html, body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; line-height: 1.45; -webkit-font-smoothing: antialiased; }
 a { color: var(--green); } a:hover { color: var(--green-dark); }
 h1, h2, h3, h4, h5 { font-weight: 600; letter-spacing: -0.01em; }
@@ -50,8 +51,8 @@ mark { background: transparent; color: inherit; }
 .btn { font-family: inherit; font-size: 14px; font-weight: 500; border-radius: 8px; padding: 9px 14px; border: 1px solid var(--card-border); background: var(--card); color: var(--text); cursor: pointer; display: inline-flex; align-items: center; gap: 6px; line-height: 1.2; }
 .btn:hover { border-color: var(--muted); }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
-.btn-primary { background: var(--green); border-color: var(--green); color: #fff; font-weight: 600; }
-.btn-primary:hover { background: var(--green-dark); border-color: var(--green-dark); }
+.btn-primary { background: #2b6a4c; border-color: #2b6a4c; color: #fff; font-weight: 600; }
+.btn-primary:hover { background: #3a7d5c; border-color: #3a7d5c; }
 .btn-secondary { }
 .inp { font-family: inherit; font-size: 13px; color: var(--text); background: var(--card); border: 1px solid var(--card-border); border-radius: 8px; padding: 8px 10px; width: 100%; box-sizing: border-box; }
 .inp:focus { outline: 2px solid var(--green); outline-offset: -1px; }
@@ -61,7 +62,7 @@ textarea.inp { resize: vertical; line-height: 1.5; background: color-mix(in srgb
 .seg-opt { display: inline-flex; align-items: center; padding: 6px 10px; cursor: pointer; font-size: 12px; font-weight: 500; color: var(--muted); }
 .seg-opt + .seg-opt { border-left: 1px solid var(--card-border); }
 .seg-opt input { position: absolute; opacity: 0; width: 0; height: 0; }
-.seg-opt:has(input:checked) { background: var(--green); color: #fff; }
+.seg-opt:has(input:checked) { background: #2b6a4c; color: #fff; }
 
 /* ── Page frame ── */
 .ws { min-height: 100vh; display: flex; flex-direction: column; }
@@ -72,7 +73,7 @@ textarea.inp { resize: vertical; line-height: 1.5; background: color-mix(in srgb
 .tab:hover { color: var(--text); }
 .tab[aria-selected="true"] { color: var(--text); border-bottom-color: var(--green); }
 .tab:disabled { opacity: .4; cursor: not-allowed; }
-.tab .count { display: inline-block; margin-left: 6px; min-width: 18px; padding: 0 5px; border-radius: 999px; background: var(--bad); color: #fff; font-size: 11px; line-height: 18px; text-align: center; }
+.tab .count { display: inline-block; margin-left: 6px; min-width: 18px; padding: 0 5px; border-radius: 999px; background: #b3261e; color: #fff; font-size: 11px; line-height: 18px; text-align: center; }
 .ws-main { flex-grow: 1; padding: 24px 64px 40px; display: flex; flex-direction: column; gap: 24px; background: var(--content); min-width: 0; }
 .two-col { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 20px; align-items: start; }
 @media (max-width: 1000px) { .title-block, .tabs, .ws-main { padding-left: 16px; padding-right: 16px; } .two-col { grid-template-columns: 1fr; } }
@@ -142,7 +143,7 @@ textarea.inp { resize: vertical; line-height: 1.5; background: color-mix(in srgb
 .quote-card { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
 .quote-card b { font-size: 13px; font-weight: 500; }
 .quote-box { font-size: 12px; color: var(--text-2); background: color-mix(in srgb, var(--card) 60%, var(--content)); border-radius: 6px; padding: 8px 10px; line-height: 1.5; }
-.quote-mark { background: color-mix(in srgb, var(--green) 22%, transparent); box-shadow: 0 1px 0 var(--green); }
+.quote-mark { background: color-mix(in srgb, var(--green) 40%, transparent); box-shadow: 0 1px 0 var(--green-dark); }
 
 /* ── Per-tab introduction ── */
 .intro { padding: 14px 18px; border-left: 4px solid var(--green); font-size: 13px; }
