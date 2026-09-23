@@ -5,7 +5,6 @@ import {
   COLLECTIONS, Claim, TIER_LABEL, cellId, freshness,
   type Cell, type Competitor, type FieldDefinition, type MarketId, type SourceDocument, type Verdict,
 } from "@cc/shared";
-import Corners from "./Corners";
 import { ConflictTag, FreshTag, StatusBadge, TierTag, VerdictBadge } from "./Badges";
 import { can, useAuth } from "@/lib/auth";
 import { db } from "@/lib/firebase";
@@ -50,11 +49,10 @@ export default function CellPopover({ competitor, field, marketId, cell, verdict
 
   return (
     <aside className="popover blueprint" role="dialog" aria-label="Where does this come from?">
-      <Corners />
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
         <div>
           <div className="kicker">Where does this come from?</div>
-          <div style={{ fontSize: 14, marginTop: 4 }}><b>{competitor.name}</b> · {field.label}{marketId !== "GLOBAL" && <span className="muted"> · {marketId.replace("_", "/")}</span>}</div>
+          <div style={{ fontSize: 14, marginTop: 4 }}><b>{competitor.name}</b> · {field.label}{marketId !== "GLOBAL" && <span className="muted"> · {marketId}</span>}</div>
         </div>
         <button className="btn btn-secondary" type="button" onClick={onClose} aria-label="Close" style={{ padding: "2px 8px" }}>×</button>
       </div>

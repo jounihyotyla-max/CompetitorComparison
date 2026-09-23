@@ -2,17 +2,15 @@
 import { useState } from "react";
 import { addDoc, collection } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
-import { COLLECTIONS, DEFAULT_TIER, TIER_LABEL, type Competitor, type MarketId, type SourceDocument, type Tier } from "@cc/shared";
-import Corners from "./Corners";
+import { COLLECTIONS, DEFAULT_TIER, TIER_LABEL, type Competitor, type Market, type MarketId, type SourceDocument, type Tier } from "@cc/shared";
 import { TierTag } from "./Badges";
 import { can, useAuth } from "@/lib/auth";
 import { db, functions } from "@/lib/firebase";
 import { fmtDate } from "@/lib/data";
 
 const STATUS_CLASS: Record<SourceDocument["status"], string> = { new: "warn", processing: "warn", processed: "ok", ignored: "muted", failed: "bad" };
-const MARKETS: MarketId[] = ["GLOBAL", "US", "UK_IE", "NO_SE", "ES"];
 
-export default function Sources({ documents, competitors }: { documents: SourceDocument[]; competitors: Competitor[] }) {
+export default function Sources({ documents, competitors, markets }: { documents: SourceDocument[]; competitors: Competitor[]; markets: Market[] }) {
   const { role, user } = useAuth();
   const [text, setText] = useState("");
   const [title, setTitle] = useState("");
@@ -46,7 +44,6 @@ export default function Sources({ documents, competitors }: { documents: SourceD
   return (
     <div className="two-col">
       <div className="blueprint tablebox">
-        <Corners />
         <div className="section-head"><h5>Source register</h5><span className="muted" style={{ fontSize: 12 }}>{documents.length} source{documents.length === 1 ? "" : "s"} · everything in the tables traces back to one of these</span></div>
         <div className="scrollx"><table className="table register">
           <thead><tr><th>Source</th><th>Company</th><th>Tier</th><th>Captured</th><th>Status</th><th>Claims</th>{can(role, "admin") && <th />}</tr></thead>
@@ -68,9 +65,8 @@ export default function Sources({ documents, competitors }: { documents: SourceD
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <div className="blueprint" style={{ padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
-          <Corners />
-          <h5 style={{ margin: 0 }}>Add notes by hand</h5>
+        <div className="blueprint" style={{ padding: 18, display: "flex", flexDirection: "column", gap: 10 }}>
+            <h5 style={{ margin: 0 }}>Add notes by hand</h5>
           <p className="muted" style={{ margin: 0, fontSize: 12 }}>Tagged with your name and today&apos;s date. Customer names, emails and phone numbers are masked before anything is stored.</p>
           {can(role, "editor") ? (
             <>
@@ -82,7 +78,7 @@ export default function Sources({ documents, competitors }: { documents: SourceD
                   {competitors.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select></label>
                 <label className="lbl">Market<select className="inp" value={marketId} onChange={(e) => setMarketId(e.target.value as MarketId)}>
-                  {MARKETS.map((m) => <option key={m} value={m}>{m === "GLOBAL" ? "All markets" : m.replace("_", "/")}</option>)}
+                  {[...markets].sort((a, b) => a.order - b.order).map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
                 </select></label>
               </div>
               <label className="lbl">How do you know this?<select className="inp" value={tier} onChange={(e) => setTier(Number(e.target.value) as Tier)}>
@@ -100,9 +96,8 @@ export default function Sources({ documents, competitors }: { documents: SourceD
           {msg && <p style={{ fontSize: 12, margin: 0 }}>{msg}</p>}
         </div>
 
-        <div className="blueprint" style={{ padding: 14, display: "flex", flexDirection: "column", gap: 8 }}>
-          <Corners />
-          <h5 style={{ margin: 0 }}>Connected data sources</h5>
+        <div className="blueprint" style={{ padding: 18, display: "flex", flexDirection: "column", gap: 8 }}>
+            <h5 style={{ margin: 0 }}>Connected data sources</h5>
           <p className="muted" style={{ margin: 0, fontSize: 12 }}>Arriving in later phases. Each sync creates dated source blocks; nothing enters the tables without a quote.</p>
           {[["Competitor websites", "Weekly crawl of product and pricing pages per market", "Phase 3"], ["News and RSS", "Newsrooms and trade media", "Phase 3"], ["Slack", "Dedicated competitor channel(s)", "Phase 4"], ["HubSpot", "Logged notes, emails, tickets mentioning a competitor", "Phase 4"], ["Aircall", "Call transcripts, competitor mentions only", "Phase 4"]].map(([n, d, p]) => (
             <div key={n} style={{ display: "flex", justifyContent: "space-between", gap: 8, padding: "6px 0", borderBottom: "1px solid var(--color-divider)", fontSize: 13 }}>

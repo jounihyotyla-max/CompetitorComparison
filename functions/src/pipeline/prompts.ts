@@ -12,7 +12,7 @@ CLAIMS - one per (field, market) the document supports. Rules:
 2. status is "stated" when the document explicitly and concretely says it. A stated claim requires quote: a passage copied VERBATIM, character for character, from the document (a clause or sentence). Never paraphrase, fix typos, or merge separate passages into one quote.
 3. status is "inferred" when the document strongly implies the value without stating it ("they're cheaper", "sold out for 2026" implying demand). Give the supporting quote and explain the inference in note; lower confidence.
 4. If the document does not support a field, return nothing for it. Do not guess from general knowledge. Silence is the correct output for unsupported fields.
-5. marketId: use a specific market only when the document ties the value to that market by name, country, currency or language (kr, NOK -> NO_SE; SEK -> NO_SE; £ -> UK_IE; € with Ireland -> UK_IE; € with Spain -> ES; $ -> US). Otherwise GLOBAL. A field with values for several markets yields several claims.
+5. marketId is one COUNTRY: US, UK, IE, NO, SE or ES. Use it only when the document ties the value to that country by name, code, currency or language (kr or NOK -> NO; SEK or "SE" -> SE; £ -> UK; € with Ireland or IE -> IE; € with Spain or ES -> ES; $ -> US). Otherwise GLOBAL. A field with values for several countries yields one claim per country; never merge two countries into one claim.
 6. value format by field type:
    - price: as written with currency, unit and period, e.g. "£215 incl. first year", "$90 per head per year".
    - number: the number with its unit, e.g. "50 days", "99.7 %".

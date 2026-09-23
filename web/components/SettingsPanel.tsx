@@ -2,8 +2,8 @@
 import { useState } from "react";
 import { doc, updateDoc } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
-import { COLLECTIONS, User, type Competitor, type DecayDays, type FieldDefinition, type Role } from "@cc/shared";
-import Corners from "./Corners";
+import { COLLECTIONS, User, type Competitor, type DecayDays, type FieldDefinition, type Role, type SourceDocument } from "@cc/shared";
+import Appearance from "./Appearance";
 import { can, useAuth } from "@/lib/auth";
 import { db, functions } from "@/lib/firebase";
 import { useCollection } from "@/lib/data";
@@ -12,7 +12,7 @@ const DECAYS: { v: DecayDays; label: string }[] = [
   { v: 30, label: "30 days" }, { v: 90, label: "90 days" }, { v: 180, label: "180 days" }, { v: 365, label: "1 year" }, { v: null, label: "Never" },
 ];
 
-export default function SettingsPanel({ fields, competitors }: { fields: FieldDefinition[]; competitors: Competitor[] }) {
+export default function SettingsPanel({ fields, competitors, documents }: { fields: FieldDefinition[]; competitors: Competitor[]; documents: SourceDocument[] }) {
   const { role } = useAuth();
   const admin = can(role, "admin");
   const users = useCollection(COLLECTIONS.users, User, [], admin);
@@ -27,9 +27,12 @@ export default function SettingsPanel({ fields, competitors }: { fields: FieldDe
   if (!admin) return <p className="muted">Settings are for admins. You are signed in as {role ?? "…"}.</p>;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div className="blueprint" style={{ padding: 14, display: "flex", flexDirection: "column", gap: 8 }}>
-        <Corners />
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <div className="blueprint" style={{ padding: 18, display: "flex", flexDirection: "column", gap: 10 }}>
+        <h5>Appearance</h5>
+        <Appearance />
+      </div>
+      <div className="blueprint" style={{ padding: 18, display: "flex", flexDirection: "column", gap: 8 }}>
         <h5 style={{ margin: 0 }}>Registry</h5>
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
           {competitors.length} competitors · {fields.length} fields. Loading the registry adds anything missing and never overwrites your edits. Sample notes (Sep 2026) are created once and run through the pipeline.
@@ -37,12 +40,13 @@ export default function SettingsPanel({ fields, competitors }: { fields: FieldDe
         <div style={{ display: "flex", gap: 8 }}>
           <button className="btn btn-primary" type="button" disabled={busy} onClick={() => run(() => httpsCallable(functions, "seed")({ withNotes: true }), "Registry and sample notes loaded.")}>Load registry + sample notes</button>
           <button className="btn btn-secondary" type="button" disabled={busy} onClick={() => run(() => httpsCallable(functions, "seed")({ withNotes: false }), "Registry loaded.")}>Registry only</button>
+          <button className="btn btn-secondary" type="button" disabled={busy || documents.length === 0} title="Runs every source through the pipeline again, e.g. after a field or market change"
+            onClick={() => run(async () => { for (const d of documents) await httpsCallable(functions, "reprocessDocument")({ id: d.id }); }, `Re-ran ${documents.length} source${documents.length === 1 ? "" : "s"}.`)}>Re-run all sources</button>
         </div>
         {msg && <p style={{ fontSize: 12, margin: 0 }}>{msg}</p>}
       </div>
 
       <div className="blueprint tablebox">
-        <Corners />
         <div className="section-head"><h5>Fields and freshness</h5><span className="muted" style={{ fontSize: 12 }}>How long a value stays trusted before it is flagged stale</span></div>
         <div className="scrollx"><table className="table register">
           <thead><tr><th>Field</th><th>Group</th><th>Type</th><th>Rule</th><th>Per market</th><th>Stale after</th><th>On</th></tr></thead>
@@ -65,7 +69,6 @@ export default function SettingsPanel({ fields, competitors }: { fields: FieldDe
       </div>
 
       <div className="blueprint tablebox">
-        <Corners />
         <div className="section-head"><h5>People</h5><span className="muted" style={{ fontSize: 12 }}>Viewer reads · Editor adds notes and reviews · Admin manages everything. Keep at least two admins.</span></div>
         <div className="scrollx"><table className="table register">
           <thead><tr><th>Person</th><th>Since</th><th>Role</th></tr></thead>

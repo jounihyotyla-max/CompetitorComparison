@@ -6,11 +6,13 @@
 import type { Competitor, FieldDefinition, Market, Settings } from "@cc/shared";
 
 export const MARKETS: Market[] = [
-  { id: "GLOBAL", label: "All markets", currencies: [], languages: [], order: 0 },
-  { id: "US", label: "United States", currencies: ["USD"], languages: ["en-US"], order: 1 },
-  { id: "UK_IE", label: "UK and Ireland", currencies: ["GBP", "EUR"], languages: ["en-GB"], order: 2 },
-  { id: "NO_SE", label: "Norway and Sweden", currencies: ["NOK", "SEK"], languages: ["nb", "sv"], order: 3 },
-  { id: "ES", label: "Spain", currencies: ["EUR"], languages: ["es"], order: 4 },
+  { id: "GLOBAL", label: "All markets", group: "All", currencies: [], languages: [], order: 0 },
+  { id: "US", label: "United States", group: "US", currencies: ["USD"], languages: ["en-US"], order: 1 },
+  { id: "UK", label: "United Kingdom", group: "UK/IE", currencies: ["GBP"], languages: ["en-GB"], order: 2 },
+  { id: "IE", label: "Ireland", group: "UK/IE", currencies: ["EUR"], languages: ["en-IE"], order: 3 },
+  { id: "NO", label: "Norway", group: "NO/SE", currencies: ["NOK"], languages: ["nb"], order: 4 },
+  { id: "SE", label: "Sweden", group: "NO/SE", currencies: ["SEK"], languages: ["sv"], order: 5 },
+  { id: "ES", label: "Spain", group: "ES", currencies: ["EUR"], languages: ["es"], order: 6 },
 ];
 
 type F = Omit<FieldDefinition, "enabled" | "order" | "perMarket" | "decayDays" | "group" | "description"> &
@@ -91,17 +93,17 @@ const ts = "2026-09-23T00:00:00.000Z";
 export const COMPETITORS: Competitor[] = [
   {
     id: "nofence", name: "Nofence", aliases: ["Nofence AS", "N3", "SG2.5"], website: "https://www.nofence.no", hqCountry: "Norway",
-    isSelf: true, status: "active", markets: ["US", "UK_IE", "NO_SE", "ES"],
+    isSelf: true, status: "active", markets: ["US", "UK", "IE", "NO", "SE", "ES"],
     crawlPages: [
       { url: "https://www.nofence.no/en-us/", label: "US home", marketId: "US", kind: "product" },
-      { url: "https://www.nofence.no/en-gb/", label: "UK home", marketId: "UK_IE", kind: "product" },
-      { url: "https://www.nofence.no/nb-no/", label: "Norway home", marketId: "NO_SE", kind: "product" },
+      { url: "https://www.nofence.no/en-gb/", label: "UK home", marketId: "UK", kind: "product" },
+      { url: "https://www.nofence.no/nb-no/", label: "Norway home", marketId: "NO", kind: "product" },
     ],
     feeds: [], createdAt: ts, updatedAt: ts,
   },
   {
     id: "monil", name: "Monil", aliases: ["Monil AS", "Monil Technology"], website: "https://www.monil.no", hqCountry: "Norway",
-    isSelf: false, status: "active", markets: ["NO_SE", "UK_IE", "US"],
+    isSelf: false, status: "active", markets: ["NO", "UK", "US"],
     crawlPages: [{ url: "https://www.monil.no", label: "Home", marketId: "GLOBAL", kind: "product" }],
     feeds: [], createdAt: ts, updatedAt: ts,
   },

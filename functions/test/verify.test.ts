@@ -19,7 +19,7 @@ const claim = (over: Partial<Parameters<typeof verifyClaim>[0]>) =>
 
 test("real quote is verified and offsets recomputed", () => {
   const rep = newReport();
-  const c = verifyClaim(claim({ fieldId: PRICE.id, marketId: "UK_IE", value: "£230 including first year", quote: "UK ~£230 including first year" }), { doc, competitorId: "monil", field: PRICE, text: TEXT, claimId: "c1", now }, rep);
+  const c = verifyClaim(claim({ fieldId: PRICE.id, marketId: "UK", value: "£230 including first year", quote: "UK ~£230 including first year" }), { doc, competitorId: "monil", field: PRICE, text: TEXT, claimId: "c1", now }, rep);
   assert.ok(c);
   assert.equal(TEXT.slice(c.startChar, c.endChar), c.quote);
   assert.equal(c.status, "stated");

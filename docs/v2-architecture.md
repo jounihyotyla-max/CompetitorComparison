@@ -28,10 +28,10 @@ Anthropic API, which sees masked text only.
 | Data | Firestore | Document model fits claims/cells/events; browser reads it directly under security rules |
 | Raw snapshots | Cloud Storage | Masked page text and transcript excerpts, so quotes stay verifiable years later |
 | Ingestion, extraction, digests | Cloud Functions for Firebase, 2nd gen, TypeScript | Scheduled and webhook-triggered; 60 min max runtime handles crawls |
-| Model | Claude API (Sonnet for extraction, Opus for judging/battlecards) | Replaces v1's headless `claude -p` which cannot run as a service |
+| Model | Claude API, `claude-opus-5` for extraction and judging (`CLAUDE_MODEL` param) | Replaces v1's headless `claude -p` which cannot run as a service |
 | Secrets | Secret Manager via `defineSecret` | Slack, HubSpot, Aircall, Anthropic keys never in code or Firestore |
 
-Netlify and Jev/TypeSafe are dropped. The Python backend is retired once the TypeScript functions reach parity
+Netlify and Jev/TypeSafe are dropped (Netlify was the one vendor without a data-processing agreement; the frontend moved to Firebase Hosting). The Python backend is retired once the TypeScript functions reach parity
 (section 9).
 
 Estimated running cost: Firebase a few dollars a month at this scale; Claude API roughly $20 to $60 a month depending
@@ -108,7 +108,7 @@ Names are collections; fields marked `*` are indexed for the main queries.
 - `decayDays: 30 | 90 | 180 | 365 | null` (null = never stale). Editable in Settings only.
 - `group`: `overview | features | pricing | context` (which Overview section it renders in), `order`
 
-**markets** — `US, UK_IE, NO_SE, ES` plus `GLOBAL`. Small, admin-editable.
+**markets** — the six countries Nofence sells in, `US, UK, IE, NO, SE, ES`, plus `GLOBAL`. Each carries a `group` (`UK/IE`, `NO/SE`) used only by the UI switcher; claims and cells are always per country, never per group (first live run showed "UK £215, IE €245" would otherwise read as a conflict).
 
 **documents** — one per ingested thing (a Slack message or thread, a HubSpot note, a call transcript, one crawled
 page at one point in time, one RSS item, one manual paste)
@@ -291,4 +291,4 @@ Phase 1 and 2 can be reviewed on a preview channel before anything is announced 
 - **Slack channel list**: which channel(s) exactly, and who tells the team the channel is read by the tool.
 - **HubSpot scope**: notes and logged emails only, or also tickets? Plan assumes all three, keyword-filtered.
 - **Custom domain**: `compare.nofence.com` needs one DNS record from whoever manages the domain.
-- **Firestore region**: plan says `europe-west1`; it cannot be changed after creation, so confirm before phase 1.
+- ~~Firestore region~~: created in `europe-west1` on 23 Sep. Storage bucket is the `EU` multi-region.

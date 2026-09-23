@@ -30,12 +30,14 @@ const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe("ISO date, YYYY
 export const slug = z.string().regex(/^[a-z][a-z0-9_]*$/, "snake_case id");
 
 // ---------------------------------------------------------------- registry
-export const MarketId = z.enum(["GLOBAL", "US", "UK_IE", "NO_SE", "ES"]);
+export const MarketId = z.enum(["GLOBAL", "US", "UK", "IE", "NO", "SE", "ES"]);
 export type MarketId = z.infer<typeof MarketId>;
 
 export const Market = z.object({
   id: MarketId,
   label: z.string(),
+  /** Switcher group, e.g. UK and IE share "UK/IE". GLOBAL's group is "All". */
+  group: z.string().default(""),
   currencies: z.array(z.string()).default([]),
   languages: z.array(z.string()).default([]),
   order: z.number().int().default(0),

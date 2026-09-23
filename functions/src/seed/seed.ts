@@ -10,6 +10,8 @@ import { SEED_NOTES } from "./notes.ts";
  */
 export async function seedAll(db: Firestore, opts: { withNotes: boolean; author: string }) {
   const batch = db.batch();
+  const wanted = new Set(MARKETS.map((m) => m.id as string));
+  for (const d of (await db.collection(COLLECTIONS.markets).get()).docs) if (!wanted.has(d.id)) batch.delete(d.ref);
   for (const m of MARKETS) batch.set(db.collection(COLLECTIONS.markets).doc(m.id), Market.parse(m), { merge: true });
   for (const c of COMPETITORS) batch.set(db.collection(COLLECTIONS.competitors).doc(c.id), Competitor.parse(c), { merge: true });
   const existingFields = new Set((await db.collection(COLLECTIONS.fields).get()).docs.map((d) => d.id));

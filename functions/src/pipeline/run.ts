@@ -42,8 +42,11 @@ async function forgetDocument(docId: string) {
   for (const d of claims.docs) { const c = d.data() as Claim; keys.add(cellId(c.competitorId, c.fieldId, c.marketId)); batch.delete(d.ref); }
   for (const d of events.docs) batch.delete(d.ref);
   await batch.commit();
-  // Cells backed by a deleted claim are rebuilt from whatever live claims remain.
+  // Cells backed by a deleted claim are rebuilt from whatever live claims remain; verdicts follow the cells.
   for (const key of keys) await rebuildCell(key);
+  const vb = db.batch();
+  for (const key of keys) vb.delete(db.collection(COLLECTIONS.verdicts).doc(key));
+  await vb.commit();
 }
 
 async function rebuildCell(key: string) {

@@ -1,22 +1,21 @@
 import type { Metadata } from "next";
-import { Barlow, Barlow_Condensed } from "next/font/google";
+import { IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
 
-// Industry design-system fonts, self-hosted by Next (mapped to --font-body / --font-heading in industry.css).
-const barlow = Barlow({ subsets: ["latin"], weight: ["400", "500", "700"], variable: "--font-barlow", display: "swap" });
-const barlowCondensed = Barlow_Condensed({ subsets: ["latin"], weight: ["400", "600"], variable: "--font-barlow-condensed", display: "swap" });
+// The mockup's typeface (Competitor Comparison Table canvas), self-hosted by Next.
+const plex = IBM_Plex_Sans({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-plex", display: "swap" });
 
 export const metadata: Metadata = {
   title: "Competitor Comparison",
-  description: "Evidence-first competitor comparison: every cell quoted from your notes, inferences labelled, gaps flagged.",
+  description: "Nofence competitor comparison: every cell traces back to a dated, sourced quote.",
 };
 
-// Applies the saved theme before React hydrates so the page does not flash the wrong colors.
-const themeInit = `(function(){try{var t=localStorage.getItem("theme");var d=t==="dark"||((!t||t==="system")&&matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.toggle("dark",d)}catch(e){}})();`;
+// Applies the saved light/dark theme and colour variant before React hydrates so nothing flashes.
+const themeInit = `(function(){try{var t=localStorage.getItem("theme");var d=t==="dark"||((!t||t==="system")&&matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.toggle("dark",d);var v=localStorage.getItem("variant");if(v)document.documentElement.dataset.variant=v}catch(e){}})();`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${barlow.variable} ${barlowCondensed.variable}`}>
+    <html lang="en" suppressHydrationWarning className={plex.variable}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInit }} />
       </head>

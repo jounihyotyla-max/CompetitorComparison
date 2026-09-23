@@ -8,7 +8,7 @@ import { matchCompetitors } from "../src/pipeline/match.ts";
 const now = "2026-09-23T00:00:00.000Z";
 const field: FieldDefinition = { id: "price_first_year", label: "Collar + first year", type: "price", comparisonRule: "lower_is_better", description: "", perMarket: true, decayDays: 90, group: "pricing", order: 1, enabled: true };
 const claim = (id: string, tier: Claim["tier"], amount: number, over: Partial<Claim> = {}): Claim => ({
-  id, competitorId: "monil", fieldId: field.id, marketId: "UK_IE", documentId: `doc_${id}`,
+  id, competitorId: "monil", fieldId: field.id, marketId: "UK", documentId: `doc_${id}`,
   value: `£${amount}`, displayValue: `£${amount}`, status: "stated", quote: `£${amount}`, startChar: 0, endChar: 4, verified: true,
   tier, confidence: 0.9, note: "", firstSeenAt: "2026-09-01T00:00:00.000Z", lastChangedAt: "2026-09-01T00:00:00.000Z", lastCheckedAt: "2026-09-01T00:00:00.000Z",
   rejected: false, numeric: { amount, currency: "GBP", per: "unspecified" }, ...over,

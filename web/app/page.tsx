@@ -1,14 +1,14 @@
 "use client";
 import { useMemo, useState } from "react";
 import {
-  COLLECTIONS, Cell, Competitor, FieldDefinition, Market, SourceDocument, Verdict, cellId, type MarketId,
+  COLLECTIONS, Cell, Competitor, FieldDefinition, Market, SourceDocument, Verdict, cellId,
 } from "@cc/shared";
+import Appearance from "@/components/Appearance";
 import CellPopover from "@/components/CellPopover";
 import Overview, { type Sel } from "@/components/Overview";
 import SettingsPanel from "@/components/SettingsPanel";
 import SignIn from "@/components/SignIn";
 import Sources from "@/components/Sources";
-import ThemeToggle from "@/components/ThemeToggle";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { fmtDate, useById, useCollection } from "@/lib/data";
 
@@ -32,7 +32,7 @@ function Gate() {
 function Workspace() {
   const { user, role, signOut } = useAuth();
   const [tab, setTab] = useState<Tab>("overview");
-  const [market, setMarket] = useState<MarketId>("GLOBAL");
+  const [group, setGroup] = useState<string>("All");
   const [selected, setSelected] = useState<Sel | null>(null);
 
   const fields = useCollection(COLLECTIONS.fields, FieldDefinition);
@@ -48,7 +48,12 @@ function Workspace() {
   const rivals = competitors.docs.filter((c) => !c.isSelf && c.status === "active").map((c) => c.name);
   const title = rivals.length ? `Nofence vs ${rivals.length <= 2 ? rivals.join(" and ") : `${rivals.slice(0, -1).join(", ")} and ${rivals.at(-1)}`}` : "Nofence vs the field";
   const lastUpdate = useMemo(() => cells.docs.reduce((m, c) => (c.updatedAt > m ? c.updatedAt : m), ""), [cells.docs]);
-  const sortedMarkets = [...markets.docs].sort((a, b) => a.order - b.order);
+  // Switcher groups come from the markets registry: "All", then each distinct Market.group in order.
+  const groups = useMemo(() => {
+    const seen = new Set<string>(["All"]);
+    for (const m of [...markets.docs].sort((a, b) => a.order - b.order)) if (m.id !== "GLOBAL" && m.group) seen.add(m.group);
+    return [...seen];
+  }, [markets.docs]);
   const anyError = [fields, competitors, cells, verdicts, documents].map((x) => x.error).find(Boolean);
 
   const sel = selected && compMap.get(selected.competitorId) && fieldMap.get(selected.fieldId)
@@ -62,22 +67,22 @@ function Workspace() {
       <header className="title-block">
         <div>
           <div className="kicker">Competitor comparison</div>
-          <h2 style={{ margin: "4px 0" }}>{title}</h2>
+          <h2>{title}</h2>
           <div className="muted" style={{ fontSize: 13 }}>
             {lastUpdate ? `Updated ${fmtDate(lastUpdate)}` : "No data yet"} · {documents.docs.length} source{documents.docs.length === 1 ? "" : "s"} · Click any cell to see where it comes from
           </div>
         </div>
-        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-          {sortedMarkets.length > 0 && (
-            <div className="seg" role="radiogroup" aria-label="Market" style={{ fontSize: 12 }}>
-              {sortedMarkets.map((m) => (
-                <label key={m.id} className="seg-opt"><input type="radio" name="market" value={m.id} checked={market === m.id} onChange={() => setMarket(m.id)} /><span>{m.id === "GLOBAL" ? "All" : m.id.replace("_", "/")}</span></label>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          {groups.length > 1 && (
+            <div className="seg" role="radiogroup" aria-label="Market">
+              {groups.map((g) => (
+                <label key={g} className="seg-opt"><input type="radio" name="market" value={g} checked={group === g} onChange={() => setGroup(g)} /><span>{g}</span></label>
               ))}
             </div>
           )}
-          <ThemeToggle />
+          <Appearance compact />
           <span className="muted" style={{ fontSize: 12 }}>{user?.email} · {role}</span>
-          <button className="btn btn-secondary" type="button" onClick={signOut} style={{ fontSize: 12 }}>Sign out</button>
+          <button className="btn" type="button" onClick={signOut} style={{ fontSize: 13, padding: "6px 10px" }}>Sign out</button>
         </div>
       </header>
 
@@ -91,10 +96,10 @@ function Workspace() {
         {anyError && <p className="bad" style={{ fontSize: 13 }}>{anyError}</p>}
         {tab === "overview" && (
           fields.loading || cells.loading ? <p className="muted">Loading…</p> :
-          <Overview fields={fields.docs} competitors={competitors.docs} cells={cells.docs} verdicts={verdicts.docs} market={market} selected={selected} onSelect={setSelected} />
+          <Overview fields={fields.docs} competitors={competitors.docs} markets={markets.docs} cells={cells.docs} verdicts={verdicts.docs} group={group} selected={selected} onSelect={setSelected} />
         )}
-        {tab === "sources" && <Sources documents={documents.docs} competitors={competitors.docs} />}
-        {tab === "settings" && <SettingsPanel fields={fields.docs} competitors={competitors.docs} />}
+        {tab === "sources" && <Sources documents={documents.docs} competitors={competitors.docs} markets={markets.docs} />}
+        {tab === "settings" && <SettingsPanel fields={fields.docs} competitors={competitors.docs} documents={documents.docs} />}
       </main>
 
       {sel && <CellPopover {...sel} documents={docMap} onClose={() => setSelected(null)} />}
