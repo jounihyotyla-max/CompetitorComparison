@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { doc, updateDoc } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
-import { COLLECTIONS, Feedback, User, type Competitor, type DecayDays, type FieldDefinition, type Market, type Role, type SourceDocument } from "@cc/shared";
+import { COLLECTIONS, FEEDBACK_KIND_LABEL, Feedback, User, type Competitor, type DecayDays, type FieldDefinition, type Market, type Role, type SourceDocument } from "@cc/shared";
 import CompetitorsPanel from "./CompetitorsPanel";
 import { resetIntros } from "./Intro";
 import { can, useAuth } from "@/lib/auth";
@@ -101,7 +101,7 @@ export default function SettingsPanel({ fields, competitors, documents, markets 
           <button className="btn" type="button" style={{ background: "rgba(255,255,255,.15)", color: "inherit", borderColor: "rgba(255,255,255,.4)", fontSize: 12 }} disabled={!feedback.docs.some((f) => f.status === "open")}
             onClick={async () => {
               const open = feedback.docs.filter((f) => f.status === "open").sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-              const md = `Feedback from the competitor analytics tool (${open.length} open):\n\n` + open.map((f) => `- ${f.createdAt.slice(0, 10)} · ${f.email || "someone"} · on ${f.tab || "?"} tab: ${f.text}`).join("\n");
+              const md = `Feedback from the competitor analytics tool (${open.length} open):\n\n` + open.map((f) => `- [${FEEDBACK_KIND_LABEL[f.kind]}] ${f.createdAt.slice(0, 10)} · ${f.email || "someone"} · ${[f.context.tab && `${f.context.tab} tab`, f.context.market && f.context.market !== "All" && `market ${f.context.market}`, f.context.competitorId && `competitor ${f.context.competitorId}`, f.context.cellId && `cell ${f.context.cellId}`].filter(Boolean).join(", ") || "no context"}: ${f.text}`).join("\n");
               try { await navigator.clipboard.writeText(md); setCopied(true); setTimeout(() => setCopied(false), 1500); } catch {}
             }}>{copied ? "Copied" : "Copy for Claude"}</button>
         </div>
@@ -109,11 +109,11 @@ export default function SettingsPanel({ fields, competitors, documents, markets 
           {[...feedback.docs].sort((a, b) => (a.status === b.status ? b.createdAt.localeCompare(a.createdAt) : a.status === "open" ? -1 : 1)).map((f) => (
             <div key={f.id} style={{ display: "flex", gap: 12, padding: "10px 20px", borderBottom: "1px solid var(--line)", alignItems: "baseline", opacity: f.status === "done" ? 0.55 : 1 }}>
               <span className="muted" style={{ fontSize: 12, minWidth: 90 }}>{f.createdAt.slice(0, 10)}</span>
-              <span style={{ flex: 1 }}>{f.text}<div className="muted" style={{ fontSize: 11 }}>{f.email}{f.tab ? ` · ${f.tab} tab` : ""}</div></span>
+              <span style={{ flex: 1 }}><span className="rule" style={{ marginRight: 8 }}>{FEEDBACK_KIND_LABEL[f.kind]}</span>{f.text}<div className="muted" style={{ fontSize: 11 }}>{f.email}{[f.context.tab && `${f.context.tab} tab`, f.context.market && f.context.market !== "All" && f.context.market, f.context.competitorId, f.context.cellId && "cell attached"].filter(Boolean).map((x) => ` · ${x}`).join("")}</div></span>
               <button className="btn" type="button" style={{ fontSize: 12, padding: "3px 9px" }} disabled={busy} onClick={() => run(() => updateDoc(doc(db, COLLECTIONS.feedback, f.id), f.status === "open" ? { status: "done", doneAt: new Date().toISOString() } : { status: "open" }), f.status === "open" ? "Marked done." : "Reopened.")}>{f.status === "open" ? "Done" : "Reopen"}</button>
             </div>
           ))}
-          {feedback.docs.length === 0 && <p className="muted" style={{ margin: 0, padding: 20 }}>Nothing filed yet. Anyone signed in can send an idea or a problem from Ask · Ideas at the top right.</p>}
+          {feedback.docs.length === 0 && <p className="muted" style={{ margin: 0, padding: 20 }}>Nothing filed yet. Anyone signed in can send one from Talk to me, bottom right.</p>}
         </div>
       </div>
       <p className="muted" style={{ margin: 0, fontSize: 12 }}>

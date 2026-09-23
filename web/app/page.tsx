@@ -4,7 +4,7 @@ import {
   COLLECTIONS, Cell, Competitor, FieldDefinition, Market, Review as ReviewT, SourceDocument, Verdict, cellId,
 } from "@cc/shared";
 import CellPopover from "@/components/CellPopover";
-import Ask from "@/components/Ask";
+import Ask, { type AskContext } from "@/components/Ask";
 import Intro from "@/components/Intro";
 import Marketing from "@/components/Marketing";
 import Battlecards from "@/components/Battlecards";
@@ -39,6 +39,7 @@ function Workspace() {
   const [group, setGroup] = useState<string>("All");
   const [selected, setSelected] = useState<Sel | null>(null);
   const [asking, setAsking] = useState(false);
+  const [lastSel, setLastSel] = useState<Sel | null>(null);
 
   const fields = useCollection(COLLECTIONS.fields, FieldDefinition);
   const competitors = useCollection(COLLECTIONS.competitors, Competitor);
@@ -113,12 +114,13 @@ function Workspace() {
 
       {sel && <CellPopover {...sel} documents={docMap} onClose={() => setSelected(null)} />}
       {!asking && !sel && (
-        <button className="talk" type="button" onClick={() => setAsking(true)} aria-label="Talk to me: ask about the data, share an idea, report a problem">
+        <button className="talk" type="button" onClick={() => { setLastSel(selected); setAsking(true); }} aria-label="Talk to me: ask about the data, share an idea, report a problem">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M21 12a8 8 0 0 1-8 8H7l-4 3V12a8 8 0 0 1 8-8h2a8 8 0 0 1 8 8z"/><path d="M9 11h6M9 14h3"/></svg>
           <span style={{ display: "block" }}><b>Talk to me</b><span>Want to know more? Have an idea? Something not working?</span></span>
         </button>
       )}
-      <Ask open={asking && !sel} onClose={() => setAsking(false)} documents={docMap} onSelect={(x) => setSelected(x)} tab={tab} />
+      <Ask open={asking && !sel} onClose={() => setAsking(false)} documents={docMap} onSelect={(x) => setSelected(x)}
+        context={{ tab, market: group, competitorId: (selected ?? lastSel)?.competitorId, cellId: (selected ?? lastSel) ? cellId((selected ?? lastSel)!.competitorId, (selected ?? lastSel)!.fieldId, (selected ?? lastSel)!.marketId) : undefined } satisfies AskContext} />
     </div>
   );
 }

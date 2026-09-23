@@ -10,7 +10,7 @@ export const TIPS: Record<string, string[]> = {
     "Switch market at the top right. Prices, offers and minimum orders change per country; everything else is global.",
     "Click any value to see where it comes from: the quote, the source, its trust tier, when it was last checked, and how many sources agree.",
     "Italic means inferred rather than stated. A red conflict tag means two sources disagree and the Review tab is waiting for a decision.",
-    "Use Ask (top right) for anything the table doesn't show at a glance, such as “has Halter announced new collars?”. Answers cite their sources.",
+    "Talk to me (bottom right) answers questions from our sources with citations, and is where you tell the builders what to analyse or show differently.",
   ],
   battlecards: [
     "Pick a competitor. The card lists where Nofence wins, where they genuinely win, and objection handling, all written from the compared values only.",

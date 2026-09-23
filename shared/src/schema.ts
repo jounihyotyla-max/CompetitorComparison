@@ -369,12 +369,21 @@ export const Question = z.object({
 export type Question = z.infer<typeof Question>;
 
 /** Ideas and problems reported from the Ask pane. Admins read them; "Copy for Claude" hands them to the builder. */
+export const FeedbackKind = z.enum(["angle", "format", "data", "bug", "idea"]);
+export type FeedbackKind = z.infer<typeof FeedbackKind>;
+export const FEEDBACK_KIND_LABEL: Record<FeedbackKind, string> = {
+  angle: "Analyse differently", format: "Show it differently", data: "Data wrong or missing", bug: "Something broke", idea: "Other idea",
+};
 export const Feedback = z.object({
   id: z.string(),
   userId: z.string(),
   email: z.string().default(""),
+  kind: FeedbackKind.default("idea"),
   text: z.string().min(1),
-  tab: z.string().default(""),
+  /** Where they were when they said it, attached automatically. */
+  context: z.object({
+    tab: z.string().default(""), market: z.string().default(""), competitorId: z.string().optional(), cellId: z.string().optional(), question: z.string().optional(),
+  }).default({ tab: "", market: "" }),
   status: z.enum(["open", "done"]).default("open"),
   createdAt: iso,
   doneAt: iso.optional(),

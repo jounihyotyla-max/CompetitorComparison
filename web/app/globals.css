@@ -157,9 +157,25 @@ textarea.inp { resize: vertical; line-height: 1.5; background: color-mix(in srgb
 .cite { font-size: 11px; font-weight: 600; padding: 0 5px; border-radius: 999px; background: var(--pub-bg); color: var(--pub); text-decoration: none; margin: 0 1px; vertical-align: baseline; }
 
 /* ── Floating "Talk to me" button ── */
-.talk { position: fixed; right: 24px; bottom: 24px; z-index: 19; display: flex; align-items: center; gap: 12px; padding: 12px 18px 12px 14px; border-radius: 999px; background: #2b6a4c; color: #fff; border: 1px solid #3a7d5c; box-shadow: 0 14px 36px rgba(0, 0, 0, .6); cursor: pointer; font-family: inherit; text-align: left; }
-.talk:hover { background: #3a7d5c; }
+.talk { position: fixed; right: 24px; bottom: 24px; z-index: 19; display: flex; align-items: center; gap: 12px; padding: 12px 18px 12px 14px; border-radius: 999px; background: #f6f6f2; color: #171d19; border: 1px solid #ffffff; box-shadow: 0 14px 36px rgba(0, 0, 0, .65); cursor: pointer; font-family: inherit; text-align: left; }
+.talk:hover { background: #ffffff; }
 .talk b { display: block; font-size: 14px; font-weight: 600; line-height: 1.2; }
-.talk span { display: block; font-size: 11.5px; opacity: .85; line-height: 1.2; margin-top: 2px; }
-.talk svg { flex: none; }
+.talk span { display: block; font-size: 11.5px; color: #4e5a53; line-height: 1.2; margin-top: 2px; }
+.talk svg { flex: none; color: #2b6a4c; }
+/* The Ask pane is the one light surface: it is a conversation with the tool, not part of the data. */
+.askpane { background: #f6f6f2; color: #171d19; border-color: #ffffff; border-top-color: #2b6a4c;
+  --card: #ffffff; --card-border: #d3d9d1; --line: #e3e6e0; --text: #171d19; --text-2: #3f4844; --muted: #6a736d; --faint: #a3aaa5;
+  --raised: #f6f6f2; --raised-border: #d9ded7; --green: #2b6a4c; --green-dark: #1f523a;
+  --ok-bg: #e3f3e9; --ok: #1a6b41; --bad-bg: #f8e5e1; --bad: #9a2f22; --warn-bg: #fdf3d8; --warn: #8a6414; --none-bg: #f0f2ee; --none: #a3aaa5;
+  --pub-bg: #e6e9f5; --pub: #2f3f7a; --int-bg: #fdf3d8; --int: #7a5a12; }
+.askpane .btn { background: #fff; color: #171d19; border-color: #d9ded7; }
+.askpane .btn-primary { background: #2b6a4c; border-color: #2b6a4c; color: #fff; }
+.askpane .seg { background: #fff; border-color: #d9ded7; }
+.askpane .seg-opt { color: #6a736d; } .askpane .seg-opt + .seg-opt { border-color: #d9ded7; }
+.askpane .quote-card { background: #fff; border-color: #e3e6e0; }
+.askpane .quote-box { background: #fbfbf9; color: #3f4844; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { font-family: inherit; font-size: 12px; font-weight: 500; padding: 5px 10px; border-radius: 999px; border: 1px solid #d9ded7; background: #fff; color: #3f4844; cursor: pointer; }
+.chip[aria-pressed="true"] { background: #2b6a4c; border-color: #2b6a4c; color: #fff; }
+.ctx { font-size: 11px; color: #6a736d; }
 .popover .inp { background: var(--card); border-color: var(--raised-border); }
