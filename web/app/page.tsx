@@ -4,6 +4,7 @@ import {
   COLLECTIONS, Cell, Competitor, FieldDefinition, Market, Review as ReviewT, SourceDocument, Verdict, cellId,
 } from "@cc/shared";
 import CellPopover from "@/components/CellPopover";
+import Battlecards from "@/components/Battlecards";
 import Overview, { type Sel } from "@/components/Overview";
 import Review from "@/components/Review";
 import SettingsPanel from "@/components/SettingsPanel";
@@ -14,7 +15,7 @@ import { fmtDate, useById, useCollection } from "@/lib/data";
 
 type Tab = "overview" | "battlecards" | "marketing" | "sources" | "review" | "settings";
 const TABS: [Tab, string, boolean][] = [
-  ["overview", "Overview", true], ["battlecards", "Battlecards", false], ["marketing", "Marketing", false],
+  ["overview", "Overview", true], ["battlecards", "Battlecards", true], ["marketing", "Marketing", false],
   ["sources", "Sources & inputs", true], ["review", "Review", true], ["settings", "Settings", true],
 ];
 
@@ -98,6 +99,7 @@ function Workspace() {
           fields.loading || cells.loading ? <p className="muted">Loading…</p> :
           <Overview fields={fields.docs} competitors={competitors.docs} markets={markets.docs} cells={cells.docs} verdicts={verdicts.docs} group={group} selected={selected} onSelect={setSelected} />
         )}
+        {tab === "battlecards" && <Battlecards competitors={competitors.docs} fields={fields.docs} cells={cells.docs} markets={markets.docs} group={group} onSelect={setSelected} />}
         {tab === "review" && <Review reviews={reviews.docs} competitors={competitors.docs} fields={fields.docs} documents={docMap} />}
         {tab === "sources" && <Sources documents={documents.docs} competitors={competitors.docs} markets={markets.docs} />}
         {tab === "settings" && <SettingsPanel fields={fields.docs} competitors={competitors.docs} documents={documents.docs} markets={markets.docs} />}

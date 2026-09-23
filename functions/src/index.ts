@@ -3,11 +3,12 @@ import { onDocumentCreated, onDocumentUpdated } from "firebase-functions/v2/fire
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { defineSecret, defineString } from "firebase-functions/params";
-import { COLLECTIONS, Review, Role } from "@cc/shared";
+import { COLLECTIONS, MarketId, Review, Role } from "@cc/shared";
 import { db, nowIso } from "./lib/admin.ts";
 import { anthropicClient, DEFAULT_MODEL } from "./pipeline/extract.ts";
 import { processDocument } from "./pipeline/run.ts";
 import { applyReview } from "./pipeline/review.ts";
+import { generateBattlecard } from "./pipeline/battlecard.ts";
 import { seedAll } from "./seed/seed.ts";
 import { runCrawl } from "./connectors/crawl.ts";
 
@@ -53,6 +54,15 @@ export const seed = onCall({ timeoutSeconds: 300 }, async (req) => {
   const withNotes = req.data?.withNotes !== false;
   const result = await seedAll(db, { withNotes, author: req.auth?.token.email ?? "seed", resetCompetitors: req.data?.resetCompetitors === true });
   return result;
+});
+
+/** Editor: (re)generate the battlecard for one competitor in one market from the current cells. */
+export const battlecard = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 300 }, async (req) => {
+  await requireRole(req.auth?.uid, ["editor", "admin"]);
+  const competitorId = String(req.data?.competitorId ?? "");
+  const marketId = MarketId.safeParse(req.data?.marketId ?? "GLOBAL");
+  if (!competitorId || !marketId.success) throw new HttpsError("invalid-argument", "competitorId and a valid marketId required");
+  return generateBattlecard(competitorId, marketId.data, model());
 });
 
 /** Daily at 06:00 Oslo time: re-fetch competitor pages older than the crawl interval, and all feeds. */

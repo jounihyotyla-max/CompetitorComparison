@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import { EventKind, MarketId, type Competitor, type FieldDefinition, type Market } from "@cc/shared";
-import { EXTRACTION_SYSTEM, JUDGE_SYSTEM } from "./prompts.ts";
+import { BATTLECARD_SYSTEM, EXTRACTION_SYSTEM, JUDGE_SYSTEM } from "./prompts.ts";
 
 export const DEFAULT_MODEL = "claude-opus-5";
 
@@ -39,9 +39,17 @@ const JudgedVerdict = z.object({
 });
 const Judgement = z.object({ verdicts: z.array(JudgedVerdict) });
 
+const BattlecardOut = z.object({
+  wins: z.array(z.object({ fieldId: z.string(), text: z.string() })),
+  theirWins: z.array(z.object({ fieldId: z.string(), text: z.string() })),
+  objections: z.array(z.object({ fieldId: z.string(), objection: z.string(), response: z.string() })),
+});
+export type BattlecardOut = z.infer<typeof BattlecardOut>;
+
 export interface ModelClient {
   extract(doc: { title: string; text: string; capturedAt: string }, competitor: Competitor, fields: FieldDefinition[], markets: Market[]): Promise<Extraction>;
   judge(competitorName: string, rows: { fieldId: string; label: string; ours: string; theirs: string }[]): Promise<z.infer<typeof Judgement>["verdicts"]>;
+  battlecard(competitorName: string, marketId: MarketId, rows: { fieldId: string; label: string; ours: string; theirs: string; verdict: string; rationale: string }[]): Promise<BattlecardOut>;
 }
 
 const fieldsBlock = (fields: FieldDefinition[]) =>
@@ -92,6 +100,18 @@ export function anthropicClient(apiKey: string, model = DEFAULT_MODEL): ModelCli
       if (!res.parsed_output) throw new Error(`judge returned no parsable output (stop_reason ${res.stop_reason})`);
       const wanted = new Set(rows.map((r) => r.fieldId));
       return res.parsed_output.verdicts.filter((v) => wanted.has(v.fieldId));
+    },
+    async battlecard(competitorName, marketId, rows) {
+      const lines = rows.map((r) => `- ${r.fieldId} (${r.label}) verdict=${r.verdict}${r.rationale ? ` (${r.rationale})` : ""}: Nofence: "${r.ours}" | ${competitorName}: "${r.theirs}"`).join("\n");
+      const res = await client.messages.parse({
+        model,
+        max_tokens: 8000,
+        system: [{ type: "text", text: BATTLECARD_SYSTEM, cache_control: { type: "ephemeral" } }],
+        messages: [{ role: "user", content: `Competitor: ${competitorName}. Market: ${marketId === "GLOBAL" ? "all markets" : marketId}.\n\nRows:\n${lines}` }],
+        output_config: { format: zodOutputFormat(BattlecardOut) },
+      });
+      if (!res.parsed_output) throw new Error(`battlecard returned no parsable output (stop_reason ${res.stop_reason})`);
+      return res.parsed_output;
     },
   };
 }
