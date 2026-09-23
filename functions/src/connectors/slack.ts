@@ -15,15 +15,29 @@ const log = (...a: unknown[]) => console.log("[slack]", ...a);
 type SlackResp = { ok: boolean; error?: string; [k: string]: unknown };
 
 export function slackClient(token: string) {
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+  /**
+   * One Web API call. Slack rate-limits per method; non-Marketplace apps created after May 2025 get
+   * conversations.history / replies at 1 request per minute with 15 messages per page. On 429 we wait for
+   * Retry-After (capped at 70 s) and retry a few times instead of failing the whole run.
+   */
   const call = async (method: string, params: Record<string, string | number | boolean | undefined> = {}, post = false): Promise<SlackResp> => {
-    const url = new URL(`https://slack.com/api/${method}`);
-    const init: RequestInit = { headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(20_000) };
-    if (post) { init.method = "POST"; init.headers = { ...init.headers, "content-type": "application/json; charset=utf-8" }; init.body = JSON.stringify(params); }
-    else for (const [k, v] of Object.entries(params)) if (v !== undefined) url.searchParams.set(k, String(v));
-    const res = await fetch(url, init);
-    const json = (await res.json()) as SlackResp;
-    if (!json.ok) throw new Error(`slack ${method}: ${json.error ?? res.status}`);
-    return json;
+    for (let attempt = 0; ; attempt++) {
+      const url = new URL(`https://slack.com/api/${method}`);
+      const init: RequestInit = { headers: { authorization: `Bearer ${token}` }, signal: AbortSignal.timeout(20_000) };
+      if (post) { init.method = "POST"; init.headers = { ...init.headers, "content-type": "application/json; charset=utf-8" }; init.body = JSON.stringify(params); }
+      else for (const [k, v] of Object.entries(params)) if (v !== undefined) url.searchParams.set(k, String(v));
+      const res = await fetch(url, init);
+      const json = (await res.json().catch(() => ({ ok: false, error: `http ${res.status}` }))) as SlackResp;
+      if (json.ok) return json;
+      if ((res.status === 429 || json.error === "ratelimited") && attempt < 3) {
+        const wait = Math.min(70, Number(res.headers.get("retry-after") ?? 30)) * 1000;
+        log(method, "rate limited, waiting", wait / 1000, "s");
+        await sleep(wait);
+        continue;
+      }
+      throw new Error(`slack ${method}: ${json.error ?? res.status}`);
+    }
   };
   const users = new Map<string, { name: string; email: string; bot: boolean }>();
   const user = async (id: string) => {
@@ -49,18 +63,14 @@ export function slackClient(token: string) {
       } while (cursor);
       return out;
     },
-    async history(channel: string, oldest?: string) {
-      const out: SlackMessage[] = [];
-      let cursor: string | undefined;
-      do {
-        const r = await call("conversations.history", { channel, oldest, limit: 200, cursor, inclusive: false });
-        out.push(...(r.messages as SlackMessage[]));
-        cursor = (r.response_metadata as { next_cursor?: string } | undefined)?.next_cursor || undefined;
-      } while (cursor && out.length < 2000);
-      return out.sort((a, b) => Number(a.ts) - Number(b.ts));
+    /** One page (15 messages, oldest first) after `oldest`; the caller keeps the cursor and the time budget. */
+    async historyPage(channel: string, oldest?: string): Promise<{ messages: SlackMessage[]; hasMore: boolean }> {
+      const r = await call("conversations.history", { channel, oldest, limit: 15, inclusive: false });
+      const messages = (r.messages as SlackMessage[]).sort((a, b) => Number(a.ts) - Number(b.ts));
+      return { messages, hasMore: !!r.has_more };
     },
     async replies(channel: string, ts: string) {
-      const r = await call("conversations.replies", { channel, ts, limit: 200 });
+      const r = await call("conversations.replies", { channel, ts, limit: 15 });
       return (r.messages as SlackMessage[]).filter((m) => m.ts !== ts);
     },
     async permalink(channel: string, ts: string) {
@@ -84,7 +94,7 @@ async function render(text: string, c: ReturnType<typeof slackClient>) {
 
 export interface SlackReport { channelsRead: number; messagesSeen: number; documentsCreated: number; notes: string[] }
 
-export async function syncSlack(token: string, opts: { channels?: string[]; force?: boolean } = {}): Promise<SlackReport> {
+export async function syncSlack(token: string, opts: { channels?: string[]; force?: boolean; budgetMs?: number } = {}): Promise<SlackReport> {
   const rep: SlackReport = { channelsRead: 0, messagesSeen: 0, documentsCreated: 0, notes: [] };
   const client = slackClient(token);
   const settingsRef = db.collection(COLLECTIONS.settings).doc("global");
@@ -99,17 +109,30 @@ export async function syncSlack(token: string, opts: { channels?: string[]; forc
     if (wanted.length === 0) return rep;
   }
   const cursors = { ...settings.slackCursors };
-  // First sync reads the last 30 days; later syncs read from the cursor.
-  const initialOldest = String(Math.floor((Date.now() - 30 * 86_400_000) / 1000));
+  // First sync starts 14 days back; later syncs continue from each channel's cursor. With Slack's 1 request per
+  // minute on history, a run reads what it can within the budget and the next run picks up where it stopped.
+  const initialOldest = String(Math.floor((Date.now() - 14 * 86_400_000) / 1000));
+  const deadline = Date.now() + (opts.budgetMs ?? 12 * 60_000);
+  const saveCursors = () => settingsRef.set({ slackCursors: cursors, updatedAt: nowIso() }, { merge: true });
+  let outOfTime = false;
 
   for (const name of wanted) {
+    if (Date.now() > deadline) { outOfTime = true; break; }
     const ch = all.get(name.replace(/^#/, ""));
     if (!ch) { rep.notes.push(`#${name}: no such channel (private channels appear only once the bot is invited)`); continue; }
     if (!ch.isMember) { rep.notes.push(`#${name}: the bot is not a member, invite it with /invite`); continue; }
     rep.channelsRead++;
-    let messages: SlackMessage[];
-    try { messages = await client.history(ch.id, opts.force ? initialOldest : (cursors[ch.name] ?? initialOldest)); }
-    catch (e) { rep.notes.push(`#${name}: ${(e as Error).message}`); continue; }
+    const messages: SlackMessage[] = [];
+    let oldest = opts.force ? initialOldest : (cursors[ch.name] ?? initialOldest);
+    // At most a few pages per channel per run, so every channel gets a turn inside the budget.
+    for (let page = 0; page < 4 && Date.now() < deadline; page++) {
+      let r: { messages: SlackMessage[]; hasMore: boolean };
+      try { r = await client.historyPage(ch.id, oldest); } catch (e) { rep.notes.push(`#${name}: ${(e as Error).message}`); break; }
+      messages.push(...r.messages);
+      if (r.messages.length) oldest = r.messages[r.messages.length - 1].ts;
+      if (!r.hasMore) break;
+      rep.notes.push(`#${name}: more history remains, continuing next run`);
+    }
     for (const m of messages) {
       rep.messagesSeen++;
       cursors[ch.name] = m.ts;
@@ -140,8 +163,11 @@ export async function syncSlack(token: string, opts: { channels?: string[]; forc
       rep.documentsCreated++;
       log(`#${ch.name}`, m.ts, "->", matched.join(","));
     }
+    await saveCursors();
   }
-  await settingsRef.set({ slackCursors: cursors, updatedAt: nowIso() }, { merge: true });
+  if (outOfTime) rep.notes.push("time budget used up; the rest continues on the next run");
+  await saveCursors();
+  rep.notes = [...new Set(rep.notes)];
   log("done", JSON.stringify(rep));
   return rep;
 }

@@ -64,11 +64,11 @@ export default function SettingsPanel({ fields, competitors, documents, markets 
           </label>
           <div style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap" }}>
             <label className="lbl" style={{ width: 240 }}>Digest channel
-              <input className="inp" defaultValue={settings?.digestSlackChannel ?? ""} onBlur={(e) => { const v = e.target.value.trim().replace(/^#/, ""); if (v !== (settings?.digestSlackChannel ?? "")) run(() => updateDoc(doc(db, COLLECTIONS.settings, "global"), { digestSlackChannel: v, updatedAt: new Date().toISOString() }), "Digest channel saved."); }} />
+              <input className="inp" key={settings?.digestSlackChannel ?? "none"} defaultValue={settings?.digestSlackChannel ?? ""} onBlur={(e) => { const v = e.target.value.trim().replace(/^#/, ""); if (v !== (settings?.digestSlackChannel ?? "")) run(() => updateDoc(doc(db, COLLECTIONS.settings, "global"), { digestSlackChannel: v, updatedAt: new Date().toISOString() }), "Digest channel saved."); }} />
             </label>
             {(["pricing", "product", "news", "about", "other"] as const).map((k) => (
               <label key={k} className="lbl" style={{ width: 90 }}>{k} pages, days
-                <input className="inp" type="number" min={1} defaultValue={settings?.crawlDaysByKind?.[k] ?? 7}
+                <input className="inp" type="number" min={1} key={`${k}-${settings?.crawlDaysByKind?.[k] ?? "d"}`} defaultValue={settings?.crawlDaysByKind?.[k] ?? 7}
                   onBlur={(e) => { const n = Math.max(1, Number(e.target.value) || 1); if (n !== settings?.crawlDaysByKind?.[k]) run(() => updateDoc(doc(db, COLLECTIONS.settings, "global"), { [`crawlDaysByKind.${k}`]: n, updatedAt: new Date().toISOString() }), `${k} pages: every ${n} days.`); }} />
               </label>
             ))}
@@ -78,6 +78,8 @@ export default function SettingsPanel({ fields, competitors, documents, markets 
             <button className="btn" type="button" disabled={busy} onClick={() => run(async () => { const r = await httpsCallable<unknown, { text: string }>(functions, "digestNow")({}); setDigestPreview(r.data.text); }, "Digest preview below.")}>Preview digest</button>
             <button className="btn" type="button" disabled={busy} onClick={() => run(async () => { const r = await httpsCallable<unknown, { channel: string }>(functions, "digestNow")({ post: true }); setMsg(`Digest posted to #${r.data.channel}.`); }, "")}>Post digest now</button>
           </div>
+          {busy && <p className="muted" style={{ margin: 0, fontSize: 12 }}>Working… Slack allows one history request per minute, so a sync can take several minutes. Please don't click again.</p>}
+          {msg && !busy && <p style={{ margin: 0, fontSize: 12 }}>{msg}</p>}
           {digestPreview && <pre className="quote-box" style={{ whiteSpace: "pre-wrap", margin: 0 }}>{digestPreview}</pre>}
         </div>
       </div>
