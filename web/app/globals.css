@@ -180,3 +180,9 @@ textarea.inp { resize: vertical; line-height: 1.5; background: color-mix(in srgb
 .chip[aria-pressed="true"] { background: #2b6a4c; border-color: #2b6a4c; color: #fff; }
 .ctx { font-size: 11px; color: #6a736d; }
 .popover .inp { background: var(--card); border-color: var(--raised-border); }
+
+/* ── Review rows: open items divided by hairlines, parked items by a clear amber-tinted rule ── */
+.review-row { padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; border-bottom: 1px solid var(--line); }
+.review-row.parked { border-bottom: 2px solid color-mix(in srgb, var(--warn) 45%, var(--card-border)); padding: 20px 20px 22px; }
+.review-row.parked:last-child, .review-row.open:last-child { border-bottom: none; }
+.tablebox[data-group="parked"] .section-head { background: #8a6414; }

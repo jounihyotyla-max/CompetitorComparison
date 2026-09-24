@@ -37,7 +37,7 @@ export default function Review({ reviews, competitors, fields, documents }: {
   };
 
   const row = (r: ReviewT) => (
-    <ReviewRow key={r.id} review={r} competitor={compMap.get(r.competitorId ?? "")} field={fieldMap.get(r.fieldId ?? "")} documents={documents} editable={can(role, "editor")} who={user?.email ?? ""} />
+    <ReviewRow key={r.id} review={r} competitor={compMap.get(r.competitorId ?? "")} field={fieldMap.get(r.fieldId ?? "")} documents={documents} editable={can(role, "editor")} who={user?.email ?? ""} tone={r.status === "parked" ? "parked" : "open"} />
   );
 
   return (
@@ -59,7 +59,7 @@ export default function Review({ reviews, competitors, fields, documents }: {
       </div>
 
       {parked.length > 0 && (
-        <div className="blueprint tablebox" data-group="pricing">
+        <div className="blueprint tablebox" data-group="parked">
           <div className="section-head"><h5>Waiting for confirmation</h5><span className="muted">{parked.length} parked · someone looked and needs more information; the cells keep their conflict tag</span></div>
           <div style={{ display: "flex", flexDirection: "column" }}>{parked.map(row)}</div>
         </div>
@@ -89,9 +89,10 @@ export default function Review({ reviews, competitors, fields, documents }: {
   );
 }
 
-function ReviewRow({ review, competitor, field, documents, editable, who }: {
-  review: ReviewT; competitor?: Competitor; field?: FieldDefinition; documents: Map<string, SourceDocument>; editable: boolean; who: string;
+function ReviewRow({ review, competitor, field, documents, editable, who, tone = "open" }: {
+  review: ReviewT; competitor?: Competitor; field?: FieldDefinition; documents: Map<string, SourceDocument>; editable: boolean; who: string; tone?: "open" | "parked";
 }) {
+  const accent = tone === "parked" ? "var(--warn)" : "var(--green)";
   const [claims, setClaims] = useState<Map<string, Claim>>(new Map());
   const [merged, setMerged] = useState("");
   const [mergedNote, setMergedNote] = useState("");
@@ -149,10 +150,11 @@ function ReviewRow({ review, competitor, field, documents, editable, who }: {
     <input className="inp" style={{ width: 220 }} placeholder={field?.type === "number" ? `Number${field.unit ? ` in ${field.unit}` : ""}` : field?.type === "price" ? "Price, e.g. £215" : "The value that is actually true…"} value={merged} onChange={(e) => setMerged(e.target.value)} onKeyDown={onEnter} />
   );
 
+  const accentColor = accent;
   const side = (label: string, c: Claim | undefined, accent: boolean) => {
     const d = c ? documents.get(c.documentId) : undefined;
     return (
-      <div className="quote-card" style={{ marginTop: 0, flex: 1, minWidth: 260, borderColor: accent ? "var(--green)" : undefined }}>
+      <div className="quote-card" style={{ marginTop: 0, flex: 1, minWidth: 260, borderColor: accent ? accentColor : undefined }}>
         <div className="kicker" style={{ fontSize: 11 }}>{label}</div>
         {c ? (
           <>
@@ -168,12 +170,12 @@ function ReviewRow({ review, competitor, field, documents, editable, who }: {
   };
 
   return (
-    <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--line)", display: "flex", flexDirection: "column", gap: 12 }}>
+    <div className={`review-row ${tone}`}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "baseline" }}>
         <div><b>{competitor?.name ?? review.competitorId}</b> · {field?.label ?? review.fieldId}{review.marketId && review.marketId !== "GLOBAL" ? <span className="muted"> · {review.marketId}</span> : null}</div>
         <span className="muted" style={{ fontSize: 12 }}>opened {fmtDate(review.createdAt)} · {ago(review.createdAt)}{review.status === "parked" && review.parkedBy ? ` · parked by ${review.parkedBy}` : ""}</span>
       </div>
-      {review.status === "parked" && review.note && <div className="quote-box" style={{ borderLeft: "3px solid var(--warn)" }}>{review.note}</div>}
+      {review.status === "parked" && review.note && <div className="quote-box" style={{ borderLeft: "3px solid var(--warn)" }}><span className="muted" style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: ".04em", marginRight: 8 }}>Waiting for</span>{review.note}</div>}
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
         {side("Current value", cur, false)}
         {side(review.claimIds.length > 1 ? `New sources say (${review.claimIds.length})` : "New source says", nu, true)}
