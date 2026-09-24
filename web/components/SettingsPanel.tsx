@@ -2,8 +2,9 @@
 import { useState } from "react";
 import { doc, updateDoc } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
-import { COLLECTIONS, FEEDBACK_KIND_LABEL, Feedback, Settings, User, type Competitor, type DecayDays, type FieldDefinition, type Market, type Role, type SourceDocument } from "@cc/shared";
+import { COLLECTIONS, FEEDBACK_KIND_LABEL, Feedback, Settings, User, type Cell, type Competitor, type DecayDays, type FieldDefinition, type Market, type Review as ReviewT, type Role, type SourceDocument } from "@cc/shared";
 import CompetitorsPanel from "./CompetitorsPanel";
+import DataHealth from "./DataHealth";
 import { resetIntros } from "./Intro";
 import { can, useAuth } from "@/lib/auth";
 import { db, functions } from "@/lib/firebase";
@@ -13,7 +14,7 @@ const DECAYS: { v: DecayDays; label: string }[] = [
   { v: 30, label: "30 days" }, { v: 90, label: "90 days" }, { v: 180, label: "180 days" }, { v: 365, label: "1 year" }, { v: null, label: "Never" },
 ];
 
-export default function SettingsPanel({ fields, competitors, documents, markets }: { fields: FieldDefinition[]; competitors: Competitor[]; documents: SourceDocument[]; markets: Market[] }) {
+export default function SettingsPanel({ fields, competitors, documents, markets, cells, reviews }: { fields: FieldDefinition[]; competitors: Competitor[]; documents: SourceDocument[]; markets: Market[]; cells: Cell[]; reviews: ReviewT[] }) {
   const { role } = useAuth();
   const admin = can(role, "admin");
   const users = useCollection(COLLECTIONS.users, User, [], admin);
@@ -34,6 +35,7 @@ export default function SettingsPanel({ fields, competitors, documents, markets 
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <DataHealth cells={cells} fields={fields} competitors={competitors} documents={documents} reviews={reviews} />
       <div className="blueprint" style={{ padding: 18, display: "flex", flexDirection: "column", gap: 8 }}>
         <h5 style={{ margin: 0 }}>Registry</h5>
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
@@ -43,6 +45,8 @@ export default function SettingsPanel({ fields, competitors, documents, markets 
           <button className="btn btn-primary" type="button" disabled={busy} onClick={() => run(() => httpsCallable(functions, "seed")({ withNotes: true }), "Registry and sample notes loaded.")}>Load registry + sample notes</button>
           <button className="btn btn-secondary" type="button" disabled={busy} onClick={() => run(() => httpsCallable(functions, "seed")({ withNotes: false }), "Registry loaded.")}>Registry only</button>
           <button className="btn btn-secondary" type="button" disabled={busy} title="Puts the default watched pages, feeds and aliases back on Nofence, Monil and Halter" onClick={() => run(() => httpsCallable(functions, "seed")({ withNotes: false, resetCompetitors: true }), "Watched pages reset to defaults.")}>Reset watched pages</button>
+          <button className="btn btn-secondary" type="button" disabled={busy} title="Battlecards for every competitor and market, marketing packs for every market; skips ones whose inputs have not changed"
+            onClick={() => run(async () => { const r = await httpsCallable<unknown, { battlecards: number; marketing: number; skipped: number; errors: string[] }>(functions, "generateAllContent")({}); setMsg(`Generated ${r.data.battlecards} battlecard${r.data.battlecards === 1 ? "" : "s"} and ${r.data.marketing} marketing pack${r.data.marketing === 1 ? "" : "s"}, ${r.data.skipped} already fresh.${r.data.errors.length ? " Errors: " + r.data.errors.join(" · ") : ""}`); }, "")}>Generate all battlecards + marketing</button>
           <button className="btn btn-secondary" type="button" disabled={busy || documents.length === 0} title="Runs every source through the pipeline again, e.g. after a field or market change"
             onClick={() => run(async () => {
               const failed: string[] = [];

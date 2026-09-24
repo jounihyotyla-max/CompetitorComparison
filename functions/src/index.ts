@@ -11,6 +11,7 @@ import { applyReview } from "./pipeline/review.ts";
 import { generateBattlecard } from "./pipeline/battlecard.ts";
 import { generateMarketing } from "./pipeline/marketing.ts";
 import { answer } from "./pipeline/ask.ts";
+import { generateAll } from "./pipeline/generateAll.ts";
 import { seedAll } from "./seed/seed.ts";
 import { runCrawl } from "./connectors/crawl.ts";
 import { discoverPages } from "./connectors/discover.ts";
@@ -120,6 +121,12 @@ export const marketing = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 
   const marketId = MarketId.safeParse(req.data?.marketId ?? "GLOBAL");
   if (!marketId.success) throw new HttpsError("invalid-argument", "valid marketId required");
   return generateMarketing(marketId.data, model());
+});
+
+/** Admin: (re)generate every battlecard and marketing pack whose inputs changed since it was last generated. */
+export const generateAllContent = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 1800, memory: "1GiB" }, async (req) => {
+  await requireRole(req.auth?.uid, ["admin"]);
+  return generateAll(model(), { force: req.data?.force === true });
 });
 
 /** Anyone signed in: ask a question of the data. Answer cites cells, events and passages; stored per user. */

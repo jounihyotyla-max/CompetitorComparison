@@ -1,5 +1,5 @@
 "use client";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { cellId, freshness, type Cell, type Competitor, type FieldDefinition, type FieldGroup, type Market, type MarketId, type Verdict } from "@cc/shared";
 import { ConflictTag, FreshTag, StatusBadge, VerdictBadge } from "./Badges";
 
@@ -14,6 +14,8 @@ const GROUPS: { id: FieldGroup; title: string; sub: string }[] = [
 ];
 
 const PARTIAL = new Set(["partial", "in development"]);
+const DEFAULT_OPEN: Record<string, boolean> = { overview: true, features: true, pricing: true, hardware: false, context: false };
+const KEY = "overview:sections";
 const trimText = (s: string, n = 90) => (s.length > n ? s.slice(0, n - 1).trimEnd() + "…" : s);
 
 export default function Overview({ fields, competitors, markets, cells, verdicts, group, selected, onSelect }: {
@@ -23,6 +25,10 @@ export default function Overview({ fields, competitors, markets, cells, verdicts
 }) {
   const self = competitors.find((c) => c.isSelf);
   const cols = [...(self ? [self] : []), ...competitors.filter((c) => !c.isSelf && c.status === "active")];
+  const [open, setOpen] = useState<Record<string, boolean>>(DEFAULT_OPEN);
+  const [showEmpty, setShowEmpty] = useState(false);
+  useEffect(() => { try { const v = localStorage.getItem(KEY); if (v) setOpen({ ...DEFAULT_OPEN, ...JSON.parse(v) }); } catch {} }, []);
+  const toggle = (id: string) => setOpen((o) => { const n = { ...o, [id]: !o[id] }; try { localStorage.setItem(KEY, JSON.stringify(n)); } catch {} return n; });
   const cellMap = new Map(cells.map((c) => [c.id, c]));
   const verdictMap = new Map(verdicts.map((v) => [v.id, v]));
   const countries = markets.filter((m) => m.id !== "GLOBAL").sort((a, b) => a.order - b.order);
@@ -86,12 +92,18 @@ export default function Overview({ fields, competitors, markets, cells, verdicts
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       {GROUPS.map((g) => {
-        const rows = fields.filter((f) => f.group === g.id && f.enabled).sort((a, b) => a.order - b.order);
-        if (rows.length === 0) return null;
+        const all = fields.filter((f) => f.group === g.id && f.enabled).sort((a, b) => a.order - b.order);
+        if (all.length === 0) return null;
+        // A row nobody has data for says nothing yet; hide it unless asked.
+        const rows = showEmpty ? all : all.filter((f) => cols.some((c) => hitsFor(c.id, f).some((h) => h.cell.status !== "missing")));
+        const isOpen = open[g.id] ?? true;
         return (
           <div key={g.id} className="blueprint tablebox" data-group={g.id}>
-            <div className="section-head"><h5>{g.title}</h5><span className="muted">{g.sub}</span></div>
-            <div className="scrollx"><table className="table ov-table" style={{ minWidth: 640 }}>
+            <div className="section-head" style={{ cursor: "pointer", justifyContent: "space-between" }} onClick={() => toggle(g.id)} role="button" aria-expanded={isOpen}>
+              <span style={{ display: "flex", gap: 12, alignItems: "baseline", flexWrap: "wrap" }}><h5>{g.title}</h5><span className="muted">{g.sub}</span></span>
+              <span className="muted" style={{ whiteSpace: "nowrap" }}>{rows.length}{rows.length !== all.length ? ` of ${all.length}` : ""} rows {isOpen ? "▴" : "▾"}</span>
+            </div>
+            {isOpen && <div className="scrollx"><table className="table ov-table" style={{ minWidth: 640 }}>
               <thead>
                 <tr>
                   <th style={{ width: 200 }} />
@@ -115,11 +127,12 @@ export default function Overview({ fields, competitors, markets, cells, verdicts
                   </tr>
                 ))}
               </tbody>
-            </table></div>
+            </table></div>}
           </div>
         );
       })}
       <div className="leg" style={{ fontSize: 12, display: "flex", gap: 18, flexWrap: "wrap", alignItems: "center" }}>
+        <label style={{ display: "inline-flex", gap: 6, alignItems: "center", cursor: "pointer" }}><input type="checkbox" checked={showEmpty} onChange={(e) => setShowEmpty(e.target.checked)} /> Show rows without data</label>
         <span><span className="icon icon-ok" /> Has it</span>
         <span><span className="icon icon-warn" /> Partial, coming, or inferred</span>
         <span><span className="icon icon-bad" /> Doesn&apos;t have it</span>

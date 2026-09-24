@@ -109,7 +109,7 @@ function Workspace() {
         {tab === "marketing" && <Marketing cells={cells.docs} fields={fields.docs} competitors={competitors.docs} markets={markets.docs} group={group} onSelect={(x) => { setAsking(false); setSelected(x); }} />}
         {tab === "review" && <Review reviews={reviews.docs} competitors={competitors.docs} fields={fields.docs} documents={docMap} />}
         {tab === "sources" && <Sources documents={documents.docs} competitors={competitors.docs} markets={markets.docs} />}
-        {tab === "settings" && <SettingsPanel fields={fields.docs} competitors={competitors.docs} documents={documents.docs} markets={markets.docs} />}
+        {tab === "settings" && <SettingsPanel fields={fields.docs} competitors={competitors.docs} documents={documents.docs} markets={markets.docs} cells={cells.docs} reviews={reviews.docs} />}
       </main>
 
       {sel && <CellPopover {...sel} documents={docMap} onClose={() => setSelected(null)} />}
