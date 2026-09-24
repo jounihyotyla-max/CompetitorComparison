@@ -14,7 +14,7 @@ const GROUPS: { id: FieldGroup; title: string; sub: string }[] = [
 ];
 
 const PARTIAL = new Set(["partial", "in development"]);
-const DEFAULT_OPEN: Record<string, boolean> = { overview: true, features: true, pricing: true, hardware: false, context: false };
+const DEFAULT_OPEN: Record<string, boolean> = { overview: false, features: true, pricing: true, hardware: false, context: false };
 const KEY = "overview:sections";
 const trimText = (s: string, n = 90) => (s.length > n ? s.slice(0, n - 1).trimEnd() + "…" : s);
 
@@ -24,15 +24,20 @@ export default function Overview({ fields, competitors, markets, cells, verdicts
   group: string; selected: Sel | null; onSelect: (s: Sel) => void;
 }) {
   const self = competitors.find((c) => c.isSelf);
-  const cols = [...(self ? [self] : []), ...competitors.filter((c) => !c.isSelf && c.status === "active")];
+  const countriesAll = markets.filter((m) => m.id !== "GLOBAL").sort((a, b) => a.order - b.order);
+  const groupIds = group === "All" ? [] : countriesAll.filter((m) => m.group === group).map((m) => m.id);
+  // In a country view, competitors that don't sell there drop out. An empty market list means "unknown", so it stays.
+  const soldHere = (c: Competitor) => groupIds.length === 0 || c.markets.length === 0 || c.markets.some((m) => (groupIds as string[]).includes(m));
+  const activeRivals = competitors.filter((c) => !c.isSelf && c.status === "active");
+  const hidden = activeRivals.filter((c) => !soldHere(c));
+  const cols = [...(self ? [self] : []), ...activeRivals.filter(soldHere)];
   const [open, setOpen] = useState<Record<string, boolean>>(DEFAULT_OPEN);
   const [showEmpty, setShowEmpty] = useState(false);
   useEffect(() => { try { const v = localStorage.getItem(KEY); if (v) setOpen({ ...DEFAULT_OPEN, ...JSON.parse(v) }); } catch {} }, []);
   const toggle = (id: string) => setOpen((o) => { const n = { ...o, [id]: !o[id] }; try { localStorage.setItem(KEY, JSON.stringify(n)); } catch {} return n; });
   const cellMap = new Map(cells.map((c) => [c.id, c]));
   const verdictMap = new Map(verdicts.map((v) => [v.id, v]));
-  const countries = markets.filter((m) => m.id !== "GLOBAL").sort((a, b) => a.order - b.order);
-  const groupMarkets = (group === "All" ? countries : countries.filter((m) => m.group === group)).map((m) => m.id);
+  const groupMarkets = (group === "All" ? countriesAll : countriesAll.filter((m) => m.group === group)).map((m) => m.id);
 
   /** Per-market fields yield one hit per country in the selected group (falling back to GLOBAL); others yield the GLOBAL cell. */
   const hitsFor = (competitorId: string, f: FieldDefinition): { marketId: MarketId; cell: Cell }[] => {
@@ -131,6 +136,11 @@ export default function Overview({ fields, competitors, markets, cells, verdicts
           </div>
         );
       })}
+      {hidden.length > 0 && (
+        <p className="muted" style={{ margin: 0, fontSize: 13 }}>
+          Not sold in {group}, so not shown: {hidden.map((c) => c.name).join(", ")}. Markets per competitor are set under Settings → Competitors.
+        </p>
+      )}
       <div className="leg" style={{ fontSize: 12, display: "flex", gap: 18, flexWrap: "wrap", alignItems: "center" }}>
         <label style={{ display: "inline-flex", gap: 6, alignItems: "center", cursor: "pointer" }}><input type="checkbox" checked={showEmpty} onChange={(e) => setShowEmpty(e.target.checked)} /> Show rows without data</label>
         <span><span className="icon icon-ok" /> Has it</span>

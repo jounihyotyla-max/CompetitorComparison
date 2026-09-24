@@ -176,8 +176,11 @@ textarea.inp { resize: vertical; line-height: 1.5; background: color-mix(in srgb
 .askpane .quote-card { background: #fff; border-color: #e3e6e0; }
 .askpane .quote-box { background: #fbfbf9; color: #3f4844; }
 .chips { display: flex; gap: 6px; flex-wrap: wrap; }
-.chip { font-family: inherit; font-size: 12px; font-weight: 500; padding: 5px 10px; border-radius: 999px; border: 1px solid #d9ded7; background: #fff; color: #3f4844; cursor: pointer; }
+.chip { font-family: inherit; font-size: 12px; font-weight: 500; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--card-border); background: var(--card); color: var(--text-2); cursor: pointer; }
 .chip[aria-pressed="true"] { background: #2b6a4c; border-color: #2b6a4c; color: #fff; }
+.chip:disabled { opacity: .5; cursor: default; }
+.askpane .chip { border-color: #d9ded7; background: #fff; color: #3f4844; }
+.askpane .chip[aria-pressed="true"] { background: #2b6a4c; border-color: #2b6a4c; color: #fff; }
 .ctx { font-size: 11px; color: #6a736d; }
 .popover .inp { background: var(--card); border-color: var(--raised-border); }
 

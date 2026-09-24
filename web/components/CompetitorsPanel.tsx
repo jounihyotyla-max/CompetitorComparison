@@ -115,6 +115,15 @@ function CompetitorRow({ c, markets, busy, save, crawl }: {
             <label className="lbl" style={{ flex: 1, minWidth: 240 }}>Aliases (comma separated; used to spot mentions)
               <input className="inp" value={aliases} onChange={(e) => setAliases(e.target.value)} onBlur={() => { const a = aliases.split(",").map((s) => s.trim()).filter(Boolean); if (a.join("|") !== c.aliases.join("|")) save(c, { aliases: a }, "Aliases saved."); }} />
             </label>
+            <div className="lbl">Sold in
+              <div className="chips">
+                {countries.map((m) => {
+                  const on = c.markets.includes(m.id);
+                  return <button key={m.id} type="button" className="chip" aria-pressed={on} disabled={busy} title={m.label}
+                    onClick={() => save(c, { markets: on ? c.markets.filter((x) => x !== m.id) : [...c.markets, m.id] }, `${c.name}: markets updated.`)}>{m.id}</button>;
+                })}
+              </div>
+            </div>
             <label className="lbl">Status
               <select className="inp" value={c.status} disabled={busy || c.isSelf} onChange={(e) => save(c, { status: e.target.value as Competitor["status"] }, `${c.name} is now ${e.target.value}.`)}>
                 <option value="active">active</option><option value="draft">draft</option><option value="archived">archived</option>

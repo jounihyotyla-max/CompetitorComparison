@@ -17,7 +17,8 @@ export default function Battlecards({ competitors, fields, cells, markets, group
   competitors: Competitor[]; fields: FieldDefinition[]; cells: Cell[]; markets: Market[]; group: string; onSelect: (s: Sel) => void;
 }) {
   const { role } = useAuth();
-  const rivals = competitors.filter((c) => !c.isSelf && c.status === "active");
+  const inGroupIds = markets.filter((m) => m.id !== "GLOBAL" && m.group === group).map((m) => m.id as string);
+  const rivals = competitors.filter((c) => !c.isSelf && c.status === "active" && (group === "All" || c.markets.length === 0 || c.markets.some((m) => inGroupIds.includes(m))));
   const [rivalId, setRivalId] = useState(rivals[0]?.id ?? "");
   const rival = rivals.find((c) => c.id === rivalId) ?? rivals[0];
   const cards = useCollection(COLLECTIONS.battlecards, BattlecardT);
