@@ -8,12 +8,15 @@
  */
 import type { SourceDocument } from "@cc/shared";
 
-/** Empty until Jouni confirms when the board was written; the notes are not seeded while it is empty. */
-export const BOARD_DATE = "";
+/**
+ * The board is maintained continuously by Svitlana (product team) and was exported on 23 Sep 2026; freshness counts
+ * from the export. Re-export and bump this date when the board has changed materially, then "Re-run all sources".
+ */
+export const BOARD_DATE = "2026-09-23T14:33:00.000Z";
 
 const note = (id: string, competitorId: string, title: string, text: string, capturedAt: string): SourceDocument => ({
   id, connector: "manual", externalId: "figma:WyONoOIWWvr805Qauujl2g", externalUrl: "https://www.figma.com/board/WyONoOIWWvr805Qauujl2g/Competitors-features",
-  title, author: "product team", capturedAt, competitorIds: [competitorId], marketId: "GLOBAL", tier: 3, relevance: 1, status: "new",
+  title, author: "Svitlana, product team", capturedAt, competitorIds: [competitorId], marketId: "GLOBAL", tier: 3, relevance: 1, status: "new",
   snapshotPath: "", text, contentHash: "", charCount: text.length, claimCount: 0, eventCount: 0, checkCount: 0,
 });
 

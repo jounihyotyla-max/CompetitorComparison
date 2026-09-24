@@ -13,7 +13,7 @@
 | Cloud Functions logs | Firebase console → Functions → Logs, or `firebase functions:log` |
 | Slack app | "Nofence competitor analytics" at https://api.slack.com/apps (bot token stored as a secret, see below) |
 | Design mockups | Claude Design canvas "Competitor Comparison Table" (Jouni) |
-| Product team inputs | Google Sheet "VF Competitor comparison" (feature matrix, last edited 9 Jul 2026); Figma board "Competitors features" (hardware specs) |
+| Product team inputs | Google Sheet "VF Competitor comparison" (feature matrix, last edited 9 Jul 2026, loaded as tier-2 notes); Figma board "Competitors features" (hardware specs, maintained by Svitlana, exported 23 Sep 2026, loaded as tier-3 notes; re-export and bump `BOARD_DATE` in `functions/src/seed/board.ts` when it changes) |
 
 ## Architecture in one picture
 
