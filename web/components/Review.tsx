@@ -45,8 +45,8 @@ export default function Review({ reviews, competitors, fields, documents }: {
       <div className="blueprint tablebox" data-group="features">
         <div className="section-head" style={{ justifyContent: "space-between" }}>
           <span style={{ display: "flex", gap: 12, alignItems: "baseline", flexWrap: "wrap" }}><h5>Review inbox</h5><span className="muted">{open.length} open · a source of equal or lower trust disagreed with a current value. Open means unconfirmed: the cell shows a conflict tag and stays out of Marketing.</span></span>
-          {can(role, "admin") && open.length > 0 && (
-            <button className="btn" type="button" disabled={busy} onClick={autoResolve} title="Descriptive fields (free text) are worded differently on every page. Keep the newest official wording and close these." style={{ background: "rgba(255,255,255,.15)", color: "inherit", borderColor: "rgba(255,255,255,.4)" }}>
+          {can(role, "admin") && (
+            <button className="btn" type="button" disabled={busy} onClick={autoResolve} title="Folds duplicate reviews, settles descriptive-field and list conflicts, and clears conflict flags that have no review behind them." style={{ background: "rgba(255,255,255,.15)", color: "inherit", borderColor: "rgba(255,255,255,.4)" }}>
               Tidy up{descriptive > 0 ? `: settle ${descriptive} descriptive` : ""}
             </button>
           )}
