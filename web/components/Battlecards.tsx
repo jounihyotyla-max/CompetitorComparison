@@ -3,18 +3,21 @@ import { useMemo, useState } from "react";
 import { httpsCallable } from "firebase/functions";
 import {
   Battlecard as BattlecardT, COLLECTIONS, CompetitorEvent, battlecardId, cellId, parseCellId,
-  type Cell, type Competitor, type FieldDefinition, type Market, type MarketId,
+  type Cell, type Competitor, type FieldDefinition, type Market, type MarketId, type Verdict, type VerdictKind,
 } from "@cc/shared";
 import type { Sel } from "./Overview";
-import { TierTag } from "./Badges";
+import { TierTag, VerdictBadge } from "./Badges";
 import { can, useAuth } from "@/lib/auth";
 import { functions } from "@/lib/firebase";
 import { ago, fmtDate, useCollection } from "@/lib/data";
 
-const TILE_FIELDS = ["livestock_species", "no_base_station", "minimum_order", "scale_and_momentum"];
+/** Rows to fall back on when a rival has too few decisive verdicts yet. */
+const FALLBACK_FIELDS = ["livestock_species", "no_base_station", "warranty_years", "scale_and_momentum", "minimum_order"];
+const GROUP_PRIORITY: Record<string, number> = { pricing: 0, features: 1, overview: 2, hardware: 3, context: 4 };
+const short = (s: string, n = 56) => (s.length > n ? s.slice(0, n - 1).trimEnd() + "…" : s);
 
-export default function Battlecards({ competitors, fields, cells, markets, group, onSelect }: {
-  competitors: Competitor[]; fields: FieldDefinition[]; cells: Cell[]; markets: Market[]; group: string; onSelect: (s: Sel) => void;
+export default function Battlecards({ competitors, fields, cells, verdicts, markets, group, onSelect }: {
+  competitors: Competitor[]; fields: FieldDefinition[]; cells: Cell[]; verdicts: Verdict[]; markets: Market[]; group: string; onSelect: (s: Sel) => void;
 }) {
   const { role } = useAuth();
   const inGroupIds = markets.filter((m) => m.id !== "GLOBAL" && m.group === group).map((m) => m.id as string);
@@ -46,16 +49,42 @@ export default function Battlecards({ competitors, fields, cells, markets, group
     catch (e) { setErr((e as Error).message); } finally { setBusy(false); }
   };
 
-  const tile = (fieldId: string) => {
-    const f = fieldMap.get(fieldId);
-    const theirs = cellMap.get(cellId(rival!.id, fieldId, marketId)) ?? cellMap.get(cellId(rival!.id, fieldId, "GLOBAL"));
-    const ours = self ? cellMap.get(cellId(self.id, fieldId, marketId)) ?? cellMap.get(cellId(self.id, fieldId, "GLOBAL")) : undefined;
-    if (!f || (!theirs && !ours)) return null;
-    const show = (c?: Cell) => (!c || c.status === "missing" ? "–" : c.value === true ? "Yes" : c.value === false ? "No" : c.displayValue);
+  // "At a glance": up to four rows where the verdict against this rival is clear (win or lose), both sides have a
+  // value, and the value is short enough to read at a glance. Pricing first, then features, then company basics.
+  const cellFor = (compId: string, fieldId: string) => cellMap.get(cellId(compId, fieldId, marketId)) ?? cellMap.get(cellId(compId, fieldId, "GLOBAL"));
+  const show = (c?: Cell) => (!c || c.status === "missing" ? null : c.value === true ? "Yes" : c.value === false ? "No" : short(c.displayValue));
+  const verdictFor = (fieldId: string, theirs?: Cell) => verdicts.find((v) => v.competitorId === rival?.id && v.fieldId === fieldId && v.marketId === (theirs?.marketId ?? marketId));
+  const glance = useMemo(() => {
+    if (!rival || !self) return [];
+    type Row = { f: FieldDefinition; ours: string | null; theirs: string | null; theirCell?: Cell; v?: Verdict; score: number };
+    const rows: Row[] = fields
+      .filter((f) => f.enabled && f.comparisonRule !== "not_compared" && f.type !== "free_text")
+      .map((f) => {
+        const theirCell = cellFor(rival.id, f.id);
+        const ours = show(cellFor(self.id, f.id)), theirs = show(theirCell);
+        const v = verdictFor(f.id, theirCell);
+        const decisive = v?.verdict === "win" || v?.verdict === "lose";
+        const score = (decisive ? 0 : v?.verdict === "tie" ? 20 : 40) + (ours && theirs ? 0 : 10) + (GROUP_PRIORITY[f.group] ?? 5);
+        return { f, ours, theirs, theirCell, v, score };
+      })
+      .filter((r) => r.ours || r.theirs);
+    const decisive = rows.filter((r) => (r.v?.verdict === "win" || r.v?.verdict === "lose") && r.ours && r.theirs).sort((a, b) => a.score - b.score);
+    const picked = decisive.slice(0, 4);
+    for (const id of FALLBACK_FIELDS) { if (picked.length >= 4) break; const r = rows.find((x) => x.f.id === id && x.ours && x.theirs); if (r && !picked.includes(r)) picked.push(r); }
+    return picked;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rival?.id, self?.id, marketId, fields, cells, verdicts]);
+
+  const tile = ({ f, ours, theirs, theirCell, v }: (typeof glance)[number]) => {
+    const kind: VerdictKind = v?.verdict ?? "n/a";
     return (
-      <div key={fieldId} className="blueprint" style={{ padding: 14, cursor: "pointer" }} onClick={() => onSelect({ competitorId: rival!.id, fieldId, marketId: theirs?.marketId ?? "GLOBAL" })}>
-        <div style={{ fontSize: 20, fontWeight: 600, lineHeight: 1.15 }}>{show(theirs)}</div>
-        <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>{rival!.name} · {f.label}. Nofence: {show(ours)}</div>
+      <div key={f.id} className="blueprint glance" data-verdict={kind} role="button" tabIndex={0}
+        onClick={() => onSelect({ competitorId: rival!.id, fieldId: f.id, marketId: theirCell?.marketId ?? "GLOBAL" })}
+        onKeyDown={(e) => { if (e.key === "Enter") onSelect({ competitorId: rival!.id, fieldId: f.id, marketId: theirCell?.marketId ?? "GLOBAL" }); }}>
+        <div className="glance-head"><span>{f.label}</span>{kind !== "n/a" && <VerdictBadge verdict={kind} title={v?.rationale} />}</div>
+        <div className="glance-row"><span className="glance-who">Nofence</span><span className="glance-val">{ours ?? <span className="muted">no source</span>}</span></div>
+        <div className="glance-row"><span className="glance-who">{rival!.name}</span><span className="glance-val">{theirs ?? <span className="muted">no source</span>}</span></div>
+        {v?.rationale && <div className="glance-why muted">{short(v.rationale, 110)}</div>}
       </div>
     );
   };
@@ -75,11 +104,16 @@ export default function Battlecards({ competitors, fields, cells, markets, group
         <span className="muted" style={{ fontSize: 12 }}>{marketId === "GLOBAL" ? "all markets" : marketId}{group !== "All" && inGroup.length > 1 ? ` (${group} uses the all-markets card)` : ""}</span>
         <span style={{ flex: 1 }} />
         {card && <span className="muted" style={{ fontSize: 12 }}>Generated {fmtDate(card.generatedAt)} · {ago(card.generatedAt)}{stale && <> · <span className="tag-conflict">inputs changed</span></>}</span>}
-        {can(role, "editor") && <button className="btn btn-primary" type="button" disabled={busy} onClick={generate}>{busy ? "Generating…" : card ? "Regenerate" : "Generate battlecard"}</button>}
+        {can(role, "editor") && <button className="btn btn-primary" type="button" disabled={busy} onClick={generate}>{busy ? "Generating…" : `${card ? "Regenerate" : "Generate"} card for ${marketId === "GLOBAL" ? "all markets" : marketId}`}</button>}
       </div>
       {err && <p className="bad" style={{ margin: 0, fontSize: 13 }}>{err}</p>}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12 }}>{TILE_FIELDS.map(tile)}</div>
+      {glance.length > 0 && (
+        <div>
+          <div className="muted" style={{ fontSize: 12, marginBottom: 8 }}>At a glance: the rows where the difference is clearest{marketId !== "GLOBAL" ? ` in ${marketId}` : ""}. Click a tile for the quote and source.</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 12 }}>{glance.map(tile)}</div>
+        </div>
+      )}
 
       {!card ? (
         <div className="blueprint" style={{ padding: 24 }}>

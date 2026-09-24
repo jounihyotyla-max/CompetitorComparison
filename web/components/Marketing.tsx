@@ -48,13 +48,13 @@ export default function Marketing({ cells, fields, competitors, markets, group, 
         <span className="muted" style={{ fontSize: 12 }}>· {ourPublishable} Nofence value{ourPublishable === 1 ? "" : "s"} publishable{ourPublishable === 0 ? " (crawl nofence.com first: only official or press sources may be quoted in marketing)" : ""}</span>
         <span style={{ flex: 1 }} />
         {pack && <span className="muted" style={{ fontSize: 12 }}>Generated {fmtDate(pack.generatedAt)} · {ago(pack.generatedAt)}{stale && <> · <span className="tag-conflict">inputs changed</span></>}</span>}
-        {can(role, "editor") && <button className="btn btn-primary" type="button" disabled={busy} onClick={generate}>{busy ? "Generating…" : pack ? "Regenerate" : "Generate marketing pack"}</button>}
+        {can(role, "editor") && <button className="btn btn-primary" type="button" disabled={busy} onClick={generate}>{busy ? "Generating…" : `${pack ? "Regenerate" : "Generate"} pack for ${marketId === "GLOBAL" ? "all countries" : marketId}`}</button>}
       </div>
       {err && <p className="bad" style={{ margin: 0, fontSize: 13 }}>{err}</p>}
 
       {!pack ? (
         <div className="blueprint" style={{ padding: 24 }}>
-          <p className="muted" style={{ margin: 0 }}>No marketing pack for this market yet. It is written from publishable cells only: official or reputable public sources, current, and undisputed. Internal notes and hearsay never make it in; they are listed under &ldquo;Don&rsquo;t use&rdquo; instead.</p>
+          <p className="muted" style={{ margin: 0 }}>No marketing pack for {marketId === "GLOBAL" ? "all countries" : marketId} yet. Generate one here, or pick another country from the top; each country gets its own pack with local prices. It is written from publishable cells only: official or reputable public sources, current, and undisputed. Internal notes and hearsay never make it in; they are listed under &ldquo;Don&rsquo;t use&rdquo; instead.</p>
         </div>
       ) : (
         <>

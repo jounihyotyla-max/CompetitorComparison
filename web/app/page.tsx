@@ -105,7 +105,7 @@ function Workspace() {
           fields.loading || cells.loading ? <p className="muted">Loading…</p> :
           <Overview fields={fields.docs} competitors={competitors.docs} markets={markets.docs} cells={cells.docs} verdicts={verdicts.docs} group={group} selected={selected} onSelect={setSelected} />
         )}
-        {tab === "battlecards" && <Battlecards competitors={competitors.docs} fields={fields.docs} cells={cells.docs} markets={markets.docs} group={group} onSelect={setSelected} />}
+        {tab === "battlecards" && <Battlecards competitors={competitors.docs} fields={fields.docs} cells={cells.docs} verdicts={verdicts.docs} markets={markets.docs} group={group} onSelect={setSelected} />}
         {tab === "marketing" && <Marketing cells={cells.docs} fields={fields.docs} competitors={competitors.docs} markets={markets.docs} group={group} onSelect={(x) => { setAsking(false); setSelected(x); }} />}
         {tab === "review" && <Review reviews={reviews.docs} competitors={competitors.docs} fields={fields.docs} documents={docMap} />}
         {tab === "sources" && <Sources documents={documents.docs} competitors={competitors.docs} markets={markets.docs} />}

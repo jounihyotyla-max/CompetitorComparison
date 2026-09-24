@@ -13,7 +13,7 @@ export const TIPS: Record<string, string[]> = {
     "Talk to me (bottom right) answers questions from our sources with citations, and is where you tell the builders what to analyse or show differently.",
   ],
   battlecards: [
-    "Pick a competitor. The card lists where Nofence wins, where they genuinely win, and objection handling, all written from the compared values only.",
+    "Pick a competitor. The tiles at the top show the rows where the difference is clearest, Nofence against them, coloured by who wins. Below: where Nofence wins, where they genuinely win, and objection handling, all from the compared values only.",
     "Every line links back to its cell, so you can check the quote before using it in a conversation.",
     "Regenerate when the tag says inputs changed. Recent moves come from dated events found in the sources.",
   ],
