@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { collection, doc, onSnapshot, query, updateDoc, where } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import { COLLECTIONS, Claim, type Competitor, type FieldDefinition, type Review as ReviewT, type SourceDocument } from "@cc/shared";
@@ -94,6 +94,7 @@ function ReviewRow({ review, competitor, field, documents, editable, who }: {
 }) {
   const [claims, setClaims] = useState<Map<string, Claim>>(new Map());
   const [merged, setMerged] = useState("");
+  const [mergedNote, setMergedNote] = useState("");
   const [note, setNote] = useState(review.note ?? "");
   const [parking, setParking] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -122,12 +123,31 @@ function ReviewRow({ review, competitor, field, documents, editable, who }: {
   const decide = (status: "accepted" | "rejected" | "merged") => update({
     status, decidedBy: who, decidedAt: new Date().toISOString(),
     decision: status === "accepted" ? "new source accepted" : status === "rejected" ? "current value kept" : "merged by hand",
-    ...(status === "merged" ? { mergedValue: merged.trim() } : {}),
+    ...(status === "merged" ? { mergedValue: merged.trim(), mergedNote: mergedNote.trim() } : {}),
   });
   const park = () => update({ status: "parked", parkedBy: who, note: note.trim() });
   const reopen = () => update({ status: "open" });
-  /** Both official, both probably true (e.g. one warranty per product): prefill the merge with the two values. */
-  const suggest = () => { if (cur && nu) setMerged(`${cur.displayValue} (${documents.get(cur.documentId)?.title?.split(":").pop()?.trim() ?? "source 1"}) · ${nu.displayValue} (${documents.get(nu.documentId)?.title?.split(":").pop()?.trim() ?? "source 2"})`); };
+  /** Both true for different products or markets: keep the current value and put both in the explanation. */
+  const suggest = () => {
+    if (!cur || !nu) return;
+    const src = (c: Claim) => documents.get(c.documentId)?.title?.split(":").pop()?.trim() ?? "source";
+    if (field?.type === "boolean" || field?.type === "categorical" || field?.type === "number" || field?.type === "price") {
+      setMerged(cur.displayValue);
+      setMergedNote(`${cur.displayValue} per ${src(cur)}; ${nu.displayValue} per ${src(nu)}`);
+    } else {
+      setMerged(`${cur.displayValue} · ${nu.displayValue}`);
+      setMergedNote(`${src(cur)} and ${src(nu)} both`);
+    }
+  };
+  const canMerge = merged.trim().length > 0;
+  const onEnter = (e: React.KeyboardEvent) => { if (e.key === "Enter" && canMerge && !busy) { e.preventDefault(); decide("merged"); } };
+  const valueInput = field?.type === "boolean" ? (
+    <select className="inp" style={{ width: 110 }} value={merged} onChange={(e) => setMerged(e.target.value)}><option value="">Value…</option><option value="Yes">Yes</option><option value="No">No</option></select>
+  ) : field?.type === "categorical" && field.allowedValues?.length ? (
+    <select className="inp" style={{ width: 170 }} value={merged} onChange={(e) => setMerged(e.target.value)}><option value="">Value…</option>{field.allowedValues.map((v) => <option key={v} value={v}>{v}</option>)}</select>
+  ) : (
+    <input className="inp" style={{ width: 220 }} placeholder={field?.type === "number" ? `Number${field.unit ? ` in ${field.unit}` : ""}` : field?.type === "price" ? "Price, e.g. £215" : "The value that is actually true…"} value={merged} onChange={(e) => setMerged(e.target.value)} onKeyDown={onEnter} />
+  );
 
   const side = (label: string, c: Claim | undefined, accent: boolean) => {
     const d = c ? documents.get(c.documentId) : undefined;
@@ -175,10 +195,11 @@ function ReviewRow({ review, competitor, field, documents, editable, who }: {
             <button className="btn btn-primary" type="button" disabled={busy} onClick={() => decide("accepted")}>Accept new value</button>
             <button className="btn" type="button" disabled={busy} onClick={() => decide("rejected")}>Keep current</button>
             <button className="btn" type="button" disabled={busy} onClick={() => (review.status === "parked" ? reopen() : setParking(true))} title="Looked, can't decide yet. Keeps the conflict tag, moves it out of the open list.">{review.status === "parked" ? "Un-park" : "Park · needs confirmation"}</button>
-            <span className="muted" style={{ fontSize: 12 }}>or</span>
-            <input className="inp" style={{ width: 300 }} placeholder="Type the value that is actually true…" value={merged} onChange={(e) => setMerged(e.target.value)} />
-            <button className="btn" type="button" disabled={busy || !cur || !nu} onClick={suggest} title="Prefill with both values, one per source">Both</button>
-            <button className="btn" type="button" disabled={busy || !merged.trim()} onClick={() => decide("merged")}>Merge</button>
+            <span className="muted" style={{ fontSize: 12 }}>or set it yourself:</span>
+            {valueInput}
+            <input className="inp" style={{ flex: 1, minWidth: 220 }} placeholder="Explanation shown next to the value (optional), e.g. Switchgrass has an LED, C2.5 doesn't" value={mergedNote} onChange={(e) => setMergedNote(e.target.value)} onKeyDown={onEnter} />
+            <button className="btn" type="button" disabled={busy || !cur || !nu} onClick={suggest} title="Prefill: keep the current value, put both in the explanation">Both</button>
+            <button className={`btn ${canMerge ? "btn-primary" : ""}`} type="button" disabled={busy || !canMerge} onClick={() => decide("merged")}>Merge</button>
           </div>
         )
       ) : <p className="muted" style={{ margin: 0, fontSize: 12 }}>Editors and admins decide reviews.</p>}

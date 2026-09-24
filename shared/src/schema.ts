@@ -288,6 +288,8 @@ export const Review = z.object({
   parkedBy: z.string().optional(),
   decision: z.string().optional(),
   mergedValue: z.string().optional(),
+  /** Shown beside the merged value on the Overview; the reviewer's explanation, e.g. "Switchgrass has an LED, C2.5 doesn't". */
+  mergedNote: z.string().optional(),
   decidedBy: z.string().optional(),
   decidedAt: iso.optional(),
   createdAt: iso,

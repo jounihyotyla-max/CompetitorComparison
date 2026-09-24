@@ -10,6 +10,7 @@ import { COLLECTIONS, Cell, Claim, FieldDefinition, Review, isPublishable, type 
 import { clean, db, nowIso } from "../lib/admin.ts";
 import type { ModelClient } from "./extract.ts";
 import { valuesAgree } from "./resolve.ts";
+import { parsePrices } from "./numeric.ts";
 import { recomputeVerdicts } from "./run.ts";
 
 const log = (...a: unknown[]) => console.log("[review]", ...a);
@@ -54,11 +55,17 @@ export async function applyReview(review: Review, model: ModelClient) {
       conflict: disagreeing.length > 0, confirmedBy: who, confirmedAt: now, updatedAt: now,
     });
   } else if (review.status === "merged" && review.mergedValue) {
-    const items = review.mergedValue.split(/[,;]|\band\b/).map((x) => x.trim()).filter(Boolean);
+    // The reviewer's value is typed like any other claim, so the tables keep rendering it correctly.
+    const raw = review.mergedValue.trim();
+    let value: Cell["value"] = raw, displayValue = raw, numeric: Cell["numeric"];
+    if (field.type === "boolean") { const yes = /^(yes|true|y)$/i.test(raw); value = yes; displayValue = yes ? "Yes" : "No"; }
+    else if (field.type === "list") { const items = raw.split(/[,;]|\band\b/).map((x) => x.trim()).filter(Boolean); value = items; displayValue = items.join(", "); }
+    else if (field.type === "number") { const n = parseFloat(raw.replace(/,/g, "")); if (!Number.isNaN(n)) { value = n; numeric = { amount: n }; displayValue = `${n}${field.unit ? ` ${field.unit}` : ""}`; } }
+    else if (field.type === "price") { const p = parsePrices(raw)[0]; if (p) numeric = { amount: p.amount, currency: p.currency, per: p.period }; }
     Object.assign(cell, {
-      value: field.type === "list" ? items : review.mergedValue, displayValue: field.type === "list" ? items.join(", ") : review.mergedValue, note: `merged by ${who}`,
+      value, displayValue, note: review.mergedNote?.trim() || `merged by ${who}`,
       status: "stated", conflict: false, lastChangedAt: now, lastCheckedAt: now,
-      confirmedBy: who, confirmedAt: now, outdated: false, numeric: undefined, updatedAt: now,
+      confirmedBy: who, confirmedAt: now, outdated: false, numeric, updatedAt: now,
     });
   } else {
     log(review.id, "nothing to apply for", review.status);
