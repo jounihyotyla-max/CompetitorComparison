@@ -15,7 +15,7 @@ import { generateAll } from "./pipeline/generateAll.ts";
 import { seedAll } from "./seed/seed.ts";
 import { runCrawl } from "./connectors/crawl.ts";
 import { discoverPages } from "./connectors/discover.ts";
-import { syncSlack } from "./connectors/slack.ts";
+import { slackClient, syncSlack } from "./connectors/slack.ts";
 import { buildDigest, postDigest } from "./pipeline/digest.ts";
 
 setGlobalOptions({ region: "europe-west1", maxInstances: 10 });
@@ -212,11 +212,33 @@ export const onReviewDecided = onDocumentUpdated(
   },
 );
 
-/** First sign-in creates users/{uid} as viewer from the browser; admins listed in ADMIN_EMAILS are promoted here. */
-export const onUserNew = onDocumentCreated(`${COLLECTIONS.users}/{uid}`, async (event) => {
-  const email = String(event.data?.data()?.email ?? "").toLowerCase();
+/**
+ * First sign-in creates users/{uid} as viewer from the browser; admins listed in ADMIN_EMAILS are promoted here.
+ * Every admin then gets a Slack DM saying who joined (falls back to the digest channel if a DM can't be opened).
+ */
+export const onUserNew = onDocumentCreated({ document: `${COLLECTIONS.users}/{uid}`, secrets: [SLACK_BOT_TOKEN] }, async (event) => {
+  const data = event.data?.data() ?? {};
+  const email = String(data.email ?? "").toLowerCase();
   const admins = ADMIN_EMAILS.value().split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
-  if (admins.includes(email)) {
-    await event.data!.ref.update({ role: "admin", promotedAt: nowIso() });
-  }
+  let role = String(data.role ?? "viewer");
+  if (admins.includes(email)) { role = "admin"; await event.data!.ref.update({ role, promotedAt: nowIso() }); }
+
+  const text = `New user on competitor analytics: *${String(data.displayName ?? "") || email}* (${email}), role ${role}. Settings → People to change the role: https://nofence-competitor-compare.web.app`;
+  try {
+    const slack = slackClient(SLACK_BOT_TOKEN.value());
+    const adminUsers = (await db.collection(COLLECTIONS.users).where("role", "==", "admin").get()).docs.map((d) => String(d.data().email ?? "").toLowerCase());
+    const recipients = [...new Set([...admins, ...adminUsers])].filter((e) => e && e !== email);
+    let delivered = 0;
+    for (const to of recipients) {
+      try {
+        const u = await slack.call("users.lookupByEmail", { email: to });
+        await slack.post(String((u.user as { id: string }).id), text);
+        delivered++;
+      } catch (e) { console.log("[users] DM failed for", to, (e as Error).message); }
+    }
+    if (delivered === 0) {
+      const channel = String((await db.collection(COLLECTIONS.settings).doc("global").get()).data()?.digestSlackChannel ?? "");
+      if (channel) await slack.post(`#${channel}`, text);
+    }
+  } catch (e) { console.log("[users] notification skipped:", (e as Error).message); }
 });
