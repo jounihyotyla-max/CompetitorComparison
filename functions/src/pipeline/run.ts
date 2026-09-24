@@ -278,8 +278,9 @@ export async function touchDocument(docId: string, now: string) {
     const snap = await ref.get();
     if (!snap.exists) continue;
     const cell = snap.data() as Cell;
-    // Only when this document backs the cell (or agrees with it) does the check refresh the cell itself.
-    if (claims.docs.some((d) => d.id === cell.claimId)) batch.update(ref, { lastCheckedAt: now, updatedAt: now });
+    // Only when this document backs the cell does the check refresh the cell's lastCheckedAt. updatedAt is left
+    // alone: nothing changed, and battlecards and marketing packs use updatedAt to know when their inputs moved.
+    if (claims.docs.some((d) => d.id === cell.claimId)) batch.update(ref, { lastCheckedAt: now });
   }
   batch.update(db.collection(COLLECTIONS.documents).doc(docId), { lastCheckedAt: now, checkCount: FieldValue.increment(1) });
   await batch.commit();

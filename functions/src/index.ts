@@ -134,6 +134,13 @@ export const generateAllContent = onCall({ secrets: [ANTHROPIC_API_KEY], timeout
   return generateAll(model(), { force: req.data?.force === true });
 });
 
+/** Daily, after the crawl (06:00) and Slack sync (06:30): regenerate every battlecard and marketing pack whose
+ *  inputs changed since it was generated. Fresh ones are skipped, so a quiet day costs nothing. */
+export const regenerateScheduled = onSchedule(
+  { schedule: "every day 07:30", timeZone: "Europe/Oslo", timeoutSeconds: 1800, memory: "1GiB", secrets: [ANTHROPIC_API_KEY] },
+  async () => { const out = await generateAll(model()); console.log("regenerateScheduled", JSON.stringify(out)); },
+);
+
 /** Anyone signed in: ask a question of the data. Answer cites cells, events and passages; stored per user. */
 export const ask = onCall({ secrets: [ANTHROPIC_API_KEY], timeoutSeconds: 180 }, async (req) => {
   await requireRole(req.auth?.uid, ["viewer", "editor", "admin"]);

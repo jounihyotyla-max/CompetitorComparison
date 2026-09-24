@@ -47,7 +47,7 @@ export default function Marketing({ cells, fields, competitors, markets, group, 
         <span className="muted" style={{ fontSize: 13 }}>Market: <b>{marketId === "GLOBAL" ? "all (no market prices)" : marketId}</b>{group !== "All" && inGroup.length > 1 ? ` · pick ${inGroup.join(" or ")} for prices` : ""}</span>
         <span className="muted" style={{ fontSize: 12 }}>· {ourPublishable} Nofence value{ourPublishable === 1 ? "" : "s"} publishable{ourPublishable === 0 ? " (crawl nofence.com first: only official or press sources may be quoted in marketing)" : ""}</span>
         <span style={{ flex: 1 }} />
-        {pack && <span className="muted" style={{ fontSize: 12 }}>Generated {fmtDate(pack.generatedAt)} · {ago(pack.generatedAt)}{stale && <> · <span className="tag-conflict">inputs changed</span></>}</span>}
+        {pack && <span className="muted" style={{ fontSize: 12 }}>Generated {fmtDate(pack.generatedAt)} · {ago(pack.generatedAt)}{stale && <> · <span className="tag-conflict" title="A value this pack was built from changed after it was generated. It is regenerated automatically every morning at 07:30; regenerate now if you need it sooner.">inputs changed · refreshes tonight</span></>}</span>}
         {can(role, "editor") && <button className="btn btn-primary" type="button" disabled={busy} onClick={generate}>{busy ? "Generating…" : `${pack ? "Regenerate" : "Generate"} pack for ${marketId === "GLOBAL" ? "all countries" : marketId}`}</button>}
       </div>
       {err && <p className="bad" style={{ margin: 0, fontSize: 13 }}>{err}</p>}

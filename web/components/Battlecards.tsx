@@ -103,7 +103,7 @@ export default function Battlecards({ competitors, fields, cells, verdicts, mark
         </div>
         <span className="muted" style={{ fontSize: 12 }}>{marketId === "GLOBAL" ? "all markets" : marketId}{group !== "All" && inGroup.length > 1 ? ` (${group} uses the all-markets card)` : ""}</span>
         <span style={{ flex: 1 }} />
-        {card && <span className="muted" style={{ fontSize: 12 }}>Generated {fmtDate(card.generatedAt)} · {ago(card.generatedAt)}{stale && <> · <span className="tag-conflict">inputs changed</span></>}</span>}
+        {card && <span className="muted" style={{ fontSize: 12 }}>Generated {fmtDate(card.generatedAt)} · {ago(card.generatedAt)}{stale && <> · <span className="tag-conflict" title="A value this card was built from changed after it was generated. It is regenerated automatically every morning at 07:30; regenerate now if you need it sooner.">inputs changed · refreshes tonight</span></>}</span>}
         {can(role, "editor") && <button className="btn btn-primary" type="button" disabled={busy} onClick={generate}>{busy ? "Generating…" : `${card ? "Regenerate" : "Generate"} card for ${marketId === "GLOBAL" ? "all markets" : marketId}`}</button>}
       </div>
       {err && <p className="bad" style={{ margin: 0, fontSize: 13 }}>{err}</p>}

@@ -76,6 +76,7 @@ Re-running a document (`reprocessDocument`, or Settings → Re-run all sources) 
 |---|---|---|
 | `crawlScheduled` | daily 06:00 | Re-fetch pages older than their kind's interval (pricing 7 d, product 14 d, news 1 d, about 30 d); changed text → new tier-1/2 document; unchanged → *last checked* refreshed. Feeds daily. |
 | `slackScheduled` | daily 06:30 | Read configured channels (or all the bot is in) since each channel's cursor; competitor mentions with thread → tier-4 documents. Slack allows 1 history request/minute for this app, so a run reads up to 4 pages (60 messages) per channel within a 12-minute budget and continues next day. |
+| `regenerateScheduled` | daily 07:30 | Regenerate every battlecard and marketing pack whose input cells changed since it was generated; fresh ones skipped. |
 | `digestWeekly` | Monday 07:00 | Post to `settings.digestSlackChannel`: new sources, changed values, open reviews, stale pricing, drafts, open feedback. |
 | `onDocumentNew` | on create | The pipeline above. |
 | `onReviewDecided` | on update | Applies accept / reject / merge to the cell, supersedes or rejects claims, recomputes verdicts. |

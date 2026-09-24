@@ -15,7 +15,7 @@ export const TIPS: Record<string, string[]> = {
   battlecards: [
     "Pick a competitor. The tiles at the top show the rows where the difference is clearest, Nofence against them, coloured by who wins. Below: where Nofence wins, where they genuinely win, and objection handling, all from the compared values only.",
     "Every line links back to its cell, so you can check the quote before using it in a conversation.",
-    "Regenerate when the tag says inputs changed. Recent moves come from dated events found in the sources.",
+    "When a tag says inputs changed, a value behind the card moved; the card is regenerated automatically the next morning, or press Regenerate. Recent moves come from dated events found in the sources.",
   ],
   marketing: [
     "Only publishable values get in here: official or reputable public sources, current, and undisputed. Internal notes and hearsay never do.",
