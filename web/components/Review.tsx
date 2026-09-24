@@ -31,8 +31,8 @@ export default function Review({ reviews, competitors, fields, documents }: {
   const autoResolve = async () => {
     setBusy(true); setMsg("");
     try {
-      const r = await httpsCallable<unknown, { folded: number; resolved: number; remaining: number }>(functions, "autoResolveReviews")({});
-      setMsg(`Folded ${r.data.folded} duplicate${r.data.folded === 1 ? "" : "s"}, settled ${r.data.resolved} descriptive-field review${r.data.resolved === 1 ? "" : "s"} (newest source kept); ${r.data.remaining} left to decide.`);
+      const r = await httpsCallable<unknown, { folded: number; resolved: number; remaining: number; cleared: number }>(functions, "autoResolveReviews")({});
+      setMsg(`Folded ${r.data.folded} duplicate${r.data.folded === 1 ? "" : "s"}, settled ${r.data.resolved} descriptive-field review${r.data.resolved === 1 ? "" : "s"} (newest source kept), cleared ${r.data.cleared} orphaned conflict flag${r.data.cleared === 1 ? "" : "s"}; ${r.data.remaining} left to decide.`);
     } catch (e) { setMsg((e as Error).message); } finally { setBusy(false); }
   };
 

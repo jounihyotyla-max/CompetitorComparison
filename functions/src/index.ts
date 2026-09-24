@@ -112,7 +112,12 @@ export const autoResolveReviews = onCall({ timeoutSeconds: 300 }, async (req) =>
       n++;
     }
   }
-  return { folded, resolved: n, remaining: stillOpen.size - n };
+  // 3. Conflict flags with no review behind them (left by re-runs) are cleared.
+  const flagged = await db.collection(COLLECTIONS.cells).where("conflict", "==", true).get();
+  const backed = new Set((await db.collection(COLLECTIONS.reviews).where("status", "in", ["open", "parked"]).get()).docs.map((d) => String(d.data().cellId)));
+  let cleared = 0;
+  for (const d of flagged.docs) if (!backed.has(d.id)) { await d.ref.update({ conflict: false, updatedAt: nowIso() }); cleared++; }
+  return { folded, resolved: n, remaining: stillOpen.size - n, cleared };
 });
 
 /** Editor: (re)generate the marketing pack for one market from publishable cells. */

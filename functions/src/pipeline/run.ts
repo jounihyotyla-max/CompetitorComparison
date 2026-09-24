@@ -77,12 +77,19 @@ async function rebuildCell(key: string) {
   // Replay: best tier first, then oldest; the resolver rebuilds corroboration as it goes.
   live.sort((a, b) => a.tier - b.tier || a.firstSeenAt.localeCompare(b.firstSeenAt));
   let current: { cell: Cell; claim: Claim | null } | null = null;
+  let pending: Review | null = null;
   const now = nowIso();
   for (const c of live) {
-    const r = resolveClaim(c, field, current, live, now, "replay");
+    const r = resolveClaim(c, field, current, live, now, db.collection(COLLECTIONS.reviews).doc().id);
     current = { cell: r.cell, claim: live.find((x) => x.id === r.cell.claimId) ?? c };
+    if (r.review) pending = r.review; // the last unresolved disagreement is the one to ask about
   }
   await ref.set(clean(current!.cell));
+  // A rebuilt cell that ends in conflict needs a review to decide it, otherwise the flag would hang with nothing to click.
+  if (current!.cell.conflict) {
+    const openOnes = await db.collection(COLLECTIONS.reviews).where("cellId", "==", key).where("status", "in", ["open", "parked"]).limit(1).get();
+    if (openOnes.empty && pending) await db.collection(COLLECTIONS.reviews).doc(pending.id).set(clean(pending));
+  }
 }
 
 const liveClaims = async (competitorId: string, fieldId: string, marketId: MarketId) => {
