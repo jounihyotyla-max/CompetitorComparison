@@ -170,7 +170,10 @@ function CompetitorRow({ c, markets, busy, save, crawl }: {
             {c.crawlPages.map((p) => (
               <div key={p.url} style={{ display: "flex", gap: 10, alignItems: "center", padding: "4px 0" }}>
                 <span className="rule">{p.kind}</span><span className="rule">{p.marketId}</span>
-                <a href={p.url} target="_blank" rel="noreferrer" style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.url}</a>
+                <a href={p.url} target="_blank" rel="noreferrer" style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", opacity: p.pausedAt ? 0.6 : 1 }}>{p.url}</a>
+                {p.pausedAt ? <span className="tag-conflict" title={`Paused after ${p.failCount} failed fetches: ${p.lastError}`}>paused · {(p.lastError ?? "").slice(0, 40)}</span>
+                  : (p.failCount ?? 0) > 0 ? <span className="muted" style={{ fontSize: 11 }} title={p.lastError}>{p.failCount} failed</span> : null}
+                {p.pausedAt && <button className="btn" type="button" disabled={busy} style={{ padding: "2px 8px", fontSize: 12 }} onClick={() => save(c, { crawlPages: c.crawlPages.map((x) => (x.url === p.url ? { ...x, failCount: 0, lastError: "", pausedAt: undefined } : x)) }, "Page will be fetched again on the next crawl.")}>retry</button>}
                 <button className="btn" type="button" disabled={busy} style={{ padding: "2px 8px", fontSize: 12 }} onClick={() => save(c, { crawlPages: c.crawlPages.filter((x) => x.url !== p.url) }, "Page removed.")}>remove</button>
               </div>
             ))}

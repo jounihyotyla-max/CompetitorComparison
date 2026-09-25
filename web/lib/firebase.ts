@@ -14,7 +14,8 @@ const config = {
   messagingSenderId: "1071406258007",
 };
 
-export const ALLOWED_DOMAIN = "nofence.com";
+/** Google Workspace domains that may sign in. Enforced here, in Firestore rules and in Storage rules. */
+export const ALLOWED_DOMAINS = ["nofence.com", "nofence.no"];
 export const REGION = "europe-west1";
 
 export const app = getApps().length ? getApp() : initializeApp(config);
@@ -23,4 +24,5 @@ export const db = getFirestore(app);
 export const functions = getFunctions(app, REGION);
 
 export const googleProvider = new GoogleAuthProvider();
-googleProvider.setCustomParameters({ hd: ALLOWED_DOMAIN, prompt: "select_account" });
+// hd "*" limits the account chooser to Google Workspace accounts (no personal Gmail); the exact domain is checked after sign-in.
+googleProvider.setCustomParameters({ hd: "*", prompt: "select_account" });

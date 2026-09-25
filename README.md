@@ -67,7 +67,7 @@ Settings → Re-run all sources.
 
 ## Roles
 
-Sign-in is Google, restricted to `@nofence.com`. First sign-in creates a **viewer**; emails in `ADMIN_EMAILS` are
+Sign-in is Google, restricted to `@nofence.com` and `@nofence.no`. First sign-in creates a **viewer**; emails in `ADMIN_EMAILS` are
 promoted to **admin** automatically. Admins set roles under Settings → People. Editors add notes, decide reviews and
 confirm or outdate cells; admins also manage fields, decay, competitors and re-runs.
 

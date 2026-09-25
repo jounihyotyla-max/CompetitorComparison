@@ -61,7 +61,7 @@ The tool never overwrites a fact silently, and never invents one.
 
 ## How to get access, and which role to ask for
 
-Sign in with your **@nofence.com Google account**; the first sign-in creates you as a *viewer*. Ask Jouni Hyötylä
+Sign in with your **@nofence.com or @nofence.no Google account**; the first sign-in creates you as a *viewer*. Ask Jouni Hyötylä
 (or any admin, listed under *Settings → People*) for a higher role if you need one:
 
 | Role | Who | Can |

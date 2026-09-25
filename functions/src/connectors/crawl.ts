@@ -5,7 +5,7 @@
  * is unchanged since the last snapshot is not re-extracted: its existing claims and cells only get a fresh
  * lastCheckedAt (that is what "checked, not changed" means in docs/v2-architecture.md §6).
  */
-import { COLLECTIONS, Competitor, DEFAULT_TIER, Settings, SourceDocument, type CrawlPage, type MarketId, type Tier } from "@cc/shared";
+import { COLLECTIONS, Competitor, CrawlPage, DEFAULT_TIER, PAUSE_AFTER_FAILURES, Settings, SourceDocument, type MarketId, type Tier } from "@cc/shared";
 import { clean, db, nowIso } from "../lib/admin.ts";
 import { matchCompetitors } from "../pipeline/match.ts";
 import { touchDocument } from "../pipeline/run.ts";
@@ -33,19 +33,28 @@ async function latestDoc(connector: "web" | "rss", externalId: string) {
   return docs[0];
 }
 
-async function crawlPage(c: Competitor, p: CrawlPage, rep: CrawlReport) {
+/** Returns the page's new failure bookkeeping: cleared on success, counted up (and paused at the threshold) on failure. */
+async function crawlPage(c: Competitor, p: CrawlPage, rep: CrawlReport): Promise<Pick<CrawlPage, "failCount" | "lastError" | "pausedAt">> {
   rep.pagesChecked++;
   const now = nowIso();
+  const fail = (error: string) => {
+    rep.pagesFailed++; rep.notes.push(`${c.name} ${p.url}: ${error}`); log(c.id, p.url, "failed:", error);
+    const failCount = (p.failCount ?? 0) + 1;
+    const pausedAt = failCount >= PAUSE_AFTER_FAILURES ? now : undefined;
+    if (pausedAt) rep.notes.push(`${c.name} ${p.url}: paused after ${failCount} failures; retry it from Settings → Competitors`);
+    return { failCount, lastError: error, pausedAt };
+  };
+  const ok = { failCount: 0, lastError: "", pausedAt: undefined };
   const res = await fetchPage(p.url, p.marketId);
-  if (!res.ok) { rep.pagesFailed++; rep.notes.push(`${c.name} ${p.url}: ${res.error}`); log(c.id, p.url, "failed:", res.error); return; }
+  if (!res.ok) return fail(res.error);
   const { title, text } = htmlToText(res.html);
-  if (text.length < MIN_TEXT) { rep.pagesFailed++; rep.notes.push(`${c.name} ${p.url}: only ${text.length} chars of text`); return; }
+  if (text.length < MIN_TEXT) return fail(`only ${text.length} chars of text`);
   const hash = await sha256(text);
   const prev = await latestDoc("web", p.url);
   if (prev && prev.contentHash === hash && prev.status === "processed") {
     const touched = await touchDocument(prev.id, now);
     log(c.id, p.url, "unchanged; refreshed", touched, "cells");
-    return;
+    return ok;
   }
   rep.pagesChanged++;
   const doc: Omit<SourceDocument, "id"> = {
@@ -55,6 +64,7 @@ async function crawlPage(c: Competitor, p: CrawlPage, rep: CrawlReport) {
   };
   const ref = await db.collection(COLLECTIONS.documents).add(clean(SourceDocument.omit({ id: true }).parse(doc)));
   log(c.id, p.url, prev ? "changed" : "first snapshot", "->", ref.id);
+  return ok;
 }
 
 async function crawlFeed(c: Competitor | null, url: string, competitors: Competitor[], rep: CrawlReport) {
@@ -98,7 +108,11 @@ export async function runCrawl(opts: { competitorId?: string; force?: boolean } 
   const settings = Settings.parse({ id: "global", updatedAt: nowIso(), ...(await db.collection(COLLECTIONS.settings).doc("global").get()).data() });
   const days = settings.crawlDaysByKind;
   for (const c of targets) {
-    for (const p of c.crawlPages) {
+    let pagesChanged = false;
+    const pages = c.crawlPages.map((p) => ({ ...p }));
+    for (const p of pages) {
+      // A paused page is skipped by the schedule; a manual crawl of this competitor (force) gives it another go.
+      if (p.pausedAt && !opts.force) { rep.notes.push(`${c.name} ${p.url}: paused (${p.lastError})`); continue; }
       if (!opts.force) {
         const every = days[p.kind] ?? settings.crawlEveryDays;
         const cutoff = new Date(Date.now() - every * 86_400_000).toISOString();
@@ -106,8 +120,12 @@ export async function runCrawl(opts: { competitorId?: string; force?: boolean } 
         const last = prev?.lastCheckedAt ?? prev?.capturedAt;
         if (last && last > cutoff) { log(c.id, p.url, `checked within ${every} days, skipping`); continue; }
       }
-      await crawlPage(c, p, rep);
+      const st = await crawlPage(c, p, rep);
+      if (st.failCount !== (p.failCount ?? 0) || st.lastError !== (p.lastError ?? "") || st.pausedAt !== p.pausedAt) {
+        p.failCount = st.failCount; p.lastError = st.lastError; p.pausedAt = st.pausedAt; pagesChanged = true;
+      }
     }
+    if (pagesChanged) await db.collection(COLLECTIONS.competitors).doc(c.id).update({ crawlPages: pages.map((p) => clean(CrawlPage.parse(p))) });
     for (const f of c.feeds) await crawlFeed(c, f, competitors, rep);
   }
   for (const f of settings.newsFeeds) await crawlFeed(null, f, competitors, rep);

@@ -50,8 +50,13 @@ export const CrawlPage = z.object({
   label: z.string().default(""),
   marketId: MarketId.default("GLOBAL"),
   kind: z.enum(["product", "pricing", "news", "about", "other"]).default("other"),
+  /** Consecutive fetch failures; after PAUSE_AFTER_FAILURES the scheduled crawl skips the page until someone retries it. */
+  failCount: z.number().int().min(0).optional(),
+  lastError: z.string().optional(),
+  pausedAt: iso.optional(),
 });
 export type CrawlPage = z.infer<typeof CrawlPage>;
+export const PAUSE_AFTER_FAILURES = 3;
 
 export const Competitor = z.object({
   id: slug,

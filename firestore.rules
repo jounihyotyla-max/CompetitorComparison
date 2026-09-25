@@ -1,7 +1,7 @@
 rules_version = '2';
 
 // Access model (docs/v2-architecture.md §2, §4):
-//   - only signed-in @nofence.com Google accounts get in at all
+//   - only signed-in @nofence.com / @nofence.no Google accounts get in at all
 //   - viewer: read everything the tables need
 //   - editor: add manual notes, decide reviews, confirm / outdate cells
 //   - admin:  competitors, fields, markets, settings, users
@@ -14,7 +14,7 @@ service cloud.firestore {
     function signedIn() {
       return request.auth != null
         && request.auth.token.email_verified == true
-        && request.auth.token.email.matches('.*@nofence[.]com$');
+        && request.auth.token.email.matches('.*@nofence[.](com|no)$');
     }
     function userDoc() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid));

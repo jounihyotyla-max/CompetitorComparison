@@ -45,7 +45,21 @@ export async function generateMarketing(marketId: MarketId, model: ModelClient):
     }
     if (values.length) rows.push({ fieldId: f.id, label: f.label, values });
   }
-  const out = await model.marketing(marketId, rows);
+  const raw = await model.marketing(marketId, rows);
+  // The model sometimes answers with names ("Nofence", "Halter") or Title_Case ids instead of registry ids. Map what
+  // we can, drop what we cannot, so one odd id no longer rejects the whole pack.
+  const compIndex = new Map<string, string>();
+  for (const c of competitors) for (const k of [c.id, c.name, ...c.aliases]) compIndex.set(k.toLowerCase().trim(), c.id);
+  const fieldIndex = new Map<string, string>();
+  for (const f of fields) for (const k of [f.id, f.label]) fieldIndex.set(k.toLowerCase().trim(), f.id);
+  const normId = (idx: Map<string, string>, v: string) => idx.get(String(v).toLowerCase().trim()) ?? idx.get(String(v).toLowerCase().trim().replace(/[\s-]+/g, "_"));
+  const compIds = (ids: string[]) => [...new Set(ids.map((v) => normId(compIndex, v)).filter((x): x is string => !!x))];
+  const fieldId = (v: string) => normId(fieldIndex, v);
+  const out = {
+    differentiators: raw.differentiators.flatMap((d) => { const f = fieldId(d.fieldId); return f ? [{ ...d, fieldId: f, competitorIds: compIds(d.competitorIds) }] : []; }),
+    snippets: raw.snippets.map((s) => ({ ...s, fieldIds: s.fieldIds.map(fieldId).filter((x): x is string => !!x) })),
+    dontUse: raw.dontUse.flatMap((x) => { const f = fieldId(x.fieldId); return f ? [{ ...x, fieldId: f }] : []; }),
+  };
   const cellsFor = (fieldId: string, ids: string[]) => rows.find((r) => r.fieldId === fieldId)?.values.filter((v) => v.isSelf || ids.includes(v.competitorId)).map((v) => v.cellId) ?? [];
   const allPub = (fieldId: string, ids: string[]) => rows.find((r) => r.fieldId === fieldId)?.values.filter((v) => v.isSelf || ids.includes(v.competitorId)).every((v) => v.publishable) ?? false;
   const pack: MarketingPack = {

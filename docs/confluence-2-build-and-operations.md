@@ -32,7 +32,7 @@ processor is the Anthropic API (Claude), which sees masked text only. Netlify (v
 | Piece | Service |
 |---|---|
 | Frontend | Firebase Hosting, static Next.js export (`web/`) |
-| Sign-in | Firebase Auth, Google provider; Firestore rules require `@nofence.com` |
+| Sign-in | Firebase Auth, Google provider; Firestore rules require `@nofence.com` or `@nofence.no` |
 | Data | Firestore (`europe-west1`); collections below |
 | Snapshots | Cloud Storage bucket (EU multi-region), `snapshots/<documentId>.txt`, masked text |
 | Logic | Cloud Functions for Firebase, 2nd gen, Node 22, TypeScript, bundled with esbuild (`functions/`) |
@@ -118,7 +118,7 @@ non-competitor messages are never stored.
 | Situation | Do |
 |---|---|
 | New competitor | Settings → Competitors → Add (name, website) → *Suggest pages* → tick → *Crawl X now*. Keep as **draft** until it should appear in the tables. |
-| Competitor changed its website structure | Settings → Competitors → open it → remove dead pages, *Suggest pages* again. Failed fetches show in the crawl result and in Sources. |
+| Competitor changed its website structure | Settings → Competitors → open it → remove dead pages, *Suggest pages* again. A page that fails three crawls in a row is paused and shown in red there with a *retry* button. |
 | Too many reviews | Review → *Tidy up* (folds duplicates, settles descriptive fields and list unions). What remains needs a human. |
 | A value is wrong | Click it → *Mark as outdated*, or add a note by hand with the right tier, or decide the review if one is open. |
 | Something added by hand should be retracted | Sources → the document → *Re-run* after editing is not supported; instead mark affected cells outdated and add a corrective note. |
@@ -132,7 +132,7 @@ non-competitor messages are never stored.
 
 Legal covers storing customer emails and transcripts; Google contracts cover processing. Customer names, emails,
 phones and farm names are masked at ingestion before storage or any model call. Only Nofence employees (Google SSO,
-`@nofence.com`) can sign in. Anthropic API coverage: to be confirmed on record.
+`@nofence.com` or `@nofence.no`) can sign in. Anthropic API coverage: to be confirmed on record.
 
 ## Roadmap
 

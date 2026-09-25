@@ -9,7 +9,7 @@ export default function SignIn() {
         <span className="kicker">Nofence · internal</span>
         <h2 style={{ margin: 0 }}>Nofence competitor analytics</h2>
         <p className="muted" style={{ margin: 0, fontSize: 14, lineHeight: 1.5 }}>
-          Every cell in the tables traces back to a dated, sourced quote. Sign in with your Nofence Google account to see them.
+          Every cell in the tables traces back to a dated, sourced quote. Sign in with your Nofence Google account (nofence.com or nofence.no) to see them.
         </p>
         <button className="btn btn-primary" type="button" onClick={signIn} disabled={loading} style={{ alignSelf: "flex-start" }}>
           Sign in with Google

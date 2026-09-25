@@ -213,8 +213,7 @@ const matrixPages = (pages: [string, CrawlPage["kind"], MarketId?][]): CrawlPage
   pages.map(([url, kind, marketId]) => ({ url, label: "from product team matrix", marketId: marketId ?? "GLOBAL", kind }));
 
 export const MATRIX_PAGES: Record<string, CrawlPage[]> = {
-  nofence: matrixPages([
-    ["https://www.sciencedirect.com/science/article/pii/S2772375524003174", "news"], ["https://pmc.ncbi.nlm.nih.gov/articles/PMC9951726/", "news"],
+  nofence: matrixPages([ ["https://pmc.ncbi.nlm.nih.gov/articles/PMC9951726/", "news"],
     ["https://www.nofence.com/what-is-nofence/features/", "product"], ["https://www.nofence.com/community/news/articles/coming-soon-heat-detection-for-your-2-5-collars/", "news"],
     ["https://www.nofence.com/grazing-patterns/rotational-grazing/", "product"], ["https://www.nofence.com/grazing-patterns/solar-grazing/", "product"],
     ["https://www.nofence.com/knowledge-hub/articles/cell-service/", "product"], ["https://www.nofence.com/what-is-nofence/cellular-network/?lang=en-us", "product", "US"],
@@ -222,30 +221,21 @@ export const MATRIX_PAGES: Record<string, CrawlPage[]> = {
   ]),
   monil: matrixPages([
     ["https://www.monil.com/uk/blogs/using-monil-for-research", "news", "UK"], ["https://www.monil.com/us/products/collar", "product", "US"],
-    ["https://agronews.com/us/en/news/kaleidoscope/2026-05-28/93358", "news", "US"], ["https://www.beefmagazine.com/livestock-management/monil-raises-10m-to-enter-u-s-virtual-fencing-market", "news", "US"],
-    ["https://www.monil.com/us/blogs/monil-2025", "news", "US"], ["https://www.nordicsemi.com/Nordic-news/2024/11/Monil-Collar-employs-nRF9160-SiP-and-nRF52833-SoC", "news"],
-    ["https://www.monil.com/us/support/cellular-connectivity", "product", "US"],
+    ["https://agronews.com/us/en/news/kaleidoscope/2026-05-28/93358", "news", "US"],
   ]),
   halter: matrixPages([
-    ["https://www.journalofdairyscience.org/article/S0022-0302(24)00761-6/fulltext", "news"], ["https://www.sciencedirect.com/science/article/pii/S1751731126000649", "news"],
-    ["https://www.halterhq.com/animal-welfare-charter/animal-health-benefits", "product"], ["https://www.halterhq.com/dairy/improve-mating-results", "product"],
-    ["https://www.halterhq.com/en-us/mating", "product", "US"], ["https://www.halterhq.com/dairy/reduce-farm-workload", "product"],
-    ["https://www.halterhq.com/pasture-management", "product"], ["https://www.halterhq.com/articles/pasture-management-and-farm-performance", "news"],
-    ["https://www.businesswire.com/news/home/20260428409328/en/Halter-Launches-World-First-Virtual-Fencing-via-Satellite-Unlocking-Ranch-Management-Anywhere", "news"],
+    ["https://www.halterhq.com/animal-welfare-charter/animal-health-benefits", "product"], ["https://www.halterhq.com/dairy/improve-mating-results", "product"], ["https://www.halterhq.com/dairy/reduce-farm-workload", "product"], ["https://www.halterhq.com/articles/pasture-management-and-farm-performance", "news"],
     ["https://www.halterhq.com/en-us/our-technology", "product", "US"], ["https://www.halterhq.com/articles/a-closer-look-at-the-halter-collar", "product"],
   ]),
-  vence: matrixPages([
-    ["https://openprairie.sdstate.edu/cgi/viewcontent.cgi?article=1594&context=etd2", "news", "US"], ["https://pmc.ncbi.nlm.nih.gov/articles/PMC11088281/", "news", "US"],
+  vence: matrixPages([ ["https://pmc.ncbi.nlm.nih.gov/articles/PMC11088281/", "news", "US"],
     ["https://www.merck-animal-health-usa.com/hub/vence/", "product", "US"], ["https://ambiq.com/blog/virtual-fencing-is-on-the-mooove/", "news", "US"],
     ["https://www.merck-animal-health-usa.com/species/cattle/vence", "product", "US"], ["https://calfnews.net/featured/artificial-intelligence-virtual-fences/", "news", "US"],
     ["https://www.billpelton.com/virtual-fences-two-producers-share-their-experiences/", "news", "US"], ["https://tutorial.vence.io/", "product", "US"],
     ["https://www.merck-animal-health-usa.com/species/cattle/vence/how-it-works", "product", "US"], ["https://onland.westernlandowners.org/2023/steward-tips/the-invisible-fenceline/", "news", "US"],
-    ["https://www.exterrajsc.com/p/satellite-connected-virtual-fencing", "news", "US"], ["https://decode6.org/wp-content/uploads/2023/09/Shadbolt-Lawrence-Virtual-Fence_Decode-6-Podcast.pdf", "news", "US"],
+    ["https://www.exterrajsc.com/p/satellite-connected-virtual-fencing", "news", "US"],
   ]),
   gallagher: matrixPages([
-    ["https://www.publish.csiro.au/an/fulltext/an20525", "news"], ["https://www.barrierreef.org/uploads/2023-03-14-eShepherd-Final-Report.pdf", "news"],
     ["https://eshepherd.com/faq/", "product"], ["https://landing.eshepherd.com/features/alerts/", "product"],
-    ["https://www.parliament.nsw.gov.au/ladocs/submissions/85914/Submission%2042%20-%20Gallagher%20eShepherd%20Pty%20Ltd.pdf", "news"],
     ["https://am.gallagher.com/en/knowledge-hub/articles/news/eshepherd-new-features", "news"],
     ["https://am.gallagher.com/en-CA/Knowledge-Hub/Articles/Customer-Stories/Precision-Grazing-with-eShepherd-in-Albertas-Drylands", "news"],
     ["https://www.nzherald.co.nz/business/companies/agribusiness/gallaghers-eshepherd-challenges-halter-in-global-virtual-cattle-fencing-race/premium/MQBQBZQ7CNC7LG5SNX7AKS7A4Q/", "news"],
